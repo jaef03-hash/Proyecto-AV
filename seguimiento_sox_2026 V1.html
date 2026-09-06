@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento SOX 2026 · DRCAI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --red:       #E30613;
+  --red-light: #FDECEA;
+  --red-mid:   #F9C4C6;
+  --magenta:   #E91E8C;
+  --mag-light: #FDE8F4;
+  --orange:    #F7941D;
+  --ora-light: #FEF3E2;
+  --green:     #00A651;
+  --grn-light: #E2F5EC;
+  --blue:      #29ABE2;
+  --blu-light: #E8F6FC;
+  --purple:    #6B2D8B;
+  --pur-light: #F2EAF7;
+  --gray-50:   #F7F8FA;
+  --gray-100:  #EEF0F4;
+  --gray-200:  #DDE0E8;
+  --gray-400:  #9DA3B0;
+  --gray-600:  #5A6278;
+  --gray-800:  #1E2433;
+  --white:     #FFFFFF;
+  --text:      #1E2433;
+  --text-muted:#6B7280;
+  --border:    #E4E7EF;
+  --shadow:    0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--gray-50);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;font-size:14px}
+
+/* ── HEADER ── */
+header{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:60px;position:sticky;top:0;z-index:100;
+  box-shadow:var(--shadow);
+}
+.logo-area{display:flex;align-items:center;gap:14px}
+.logo-bar{width:4px;height:32px;background:var(--red);border-radius:2px}
+.logo-text{display:flex;flex-direction:column;line-height:1.2}
+.logo-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.2px}
+.logo-sub{font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+.header-actions{display:flex;gap:8px}
+.btn-action{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-red{background:var(--red);color:var(--white)}
+.btn-red:hover{background:#c4050f}
+.btn-outline{background:var(--white);color:var(--gray-600);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--red);color:var(--red)}
+
+/* ── TABS ── */
+.tabs-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:0;overflow-x:auto}
+.tab-btn{padding:14px 20px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
+.tab-add{padding:14px 16px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--gray-400);background:transparent;border:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+.tab-add:hover{color:var(--red)}
+
+/* ── MAIN ── */
+main{max-width:1280px;margin:0 auto;padding:28px 32px}
+
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.3px;margin-bottom:3px}
+.page-title span{color:var(--red)}
+.page-sub{font-size:12px;color:var(--text-muted)}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-top-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.stat-num{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px;letter-spacing:-1px}
+.stat-label{font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px}
+.stat-completada .stat-top-bar{background:var(--green)}
+.stat-completada .stat-num{color:var(--green)}
+.stat-ontrack .stat-top-bar{background:var(--blue)}
+.stat-ontrack .stat-num{color:var(--blue)}
+.stat-concern .stat-top-bar{background:var(--orange)}
+.stat-concern .stat-num{color:var(--orange)}
+.stat-pendiente .stat-top-bar{background:var(--gray-200)}
+.stat-pendiente .stat-num{color:var(--gray-600)}
+.stat-atrasada .stat-top-bar{background:var(--red)}
+.stat-atrasada .stat-num{color:var(--red)}
+
+/* ── CONTROLS ── */
+.controls{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:6px 14px;border-radius:20px;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text-muted);transition:all .15s}
+.filter-btn:hover{border-color:var(--red);color:var(--red)}
+.filter-btn.active{background:var(--red);color:var(--white);border-color:var(--red)}
+.filter-btn.f-track.active{background:var(--blue);border-color:var(--blue)}
+.filter-btn.f-concern.active{background:var(--orange);border-color:var(--orange)}
+.filter-btn.f-comp.active{background:var(--green);border-color:var(--green)}
+.ctrl-select,.ctrl-search{font-family:'Inter',sans-serif;font-size:12px;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);outline:none}
+.ctrl-select:focus,.ctrl-search:focus{border-color:var(--red)}
+.ctrl-search{flex:1;min-width:180px}
+.ctrl-select{min-width:180px}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:24px}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--gray-50);padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--gray-100);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--gray-50)}
+td{padding:10px 16px;vertical-align:top}
+
+.frente-tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.3px}
+.ft-f1{background:#E8F6FC;color:#1278A8}
+.ft-f2{background:#F2EAF7;color:#5A2577}
+.ft-f3{background:#E2F5EC;color:#00733A}
+.ft-f4{background:#FEF3E2;color:#B56A00}
+.ft-f5{background:#FDECEA;color:#B5000F}
+.ft-f6{background:#F7F8FA;color:#5A6278}
+.ft-gen{background:#F7F8FA;color:#5A6278}
+
+.task-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+.flag-concern{display:inline-block;background:var(--ora-light);color:var(--orange);border:1px solid #F7C87A;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;margin-left:6px}
+.flag-atrasada{display:inline-block;background:var(--red-light);color:var(--red);border:1px solid var(--red-mid);padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;margin-left:6px}
+.note-text{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5}
+.resp-text{font-size:12px;color:var(--gray-600)}
+
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.s-completada{background:var(--grn-light);color:var(--green)}
+.s-on-track{background:var(--blu-light);color:var(--blue)}
+.s-concern{background:var(--ora-light);color:var(--orange)}
+.s-pendiente{background:var(--gray-100);color:var(--gray-600)}
+.s-atrasada{background:var(--red-light);color:var(--red)}
+
+.pbar-wrap{display:flex;align-items:center;gap:6px}
+.progress-bar{flex:1;height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden;min-width:60px}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.pct-text{font-size:11px;color:var(--text-muted);min-width:28px;text-align:right}
+.date-text{font-size:12px;color:var(--text-muted)}
+.date-overdue{color:var(--red);font-weight:600}
+
+.status-select{font-family:'Inter',sans-serif;font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);cursor:pointer;outline:none}
+.status-select:focus{border-color:var(--red)}
+
+.no-results{text-align:center;padding:48px;color:var(--text-muted);font-size:13px}
+.task-link{cursor:pointer;color:var(--text)}
+.task-link:hover{color:var(--red);text-decoration:underline}
+.note-modal-overlay{position:fixed;inset:0;background:rgba(30,36,51,0.4);display:flex;align-items:center;justify-content:center;z-index:400;backdrop-filter:blur(2px)}
+.note-modal{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;width:520px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.note-modal-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.4}
+.note-modal-frente{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.3px}
+.note-modal-body{font-size:13px;color:var(--gray-600);line-height:1.8;white-space:pre-line;background:var(--gray-50);border-radius:8px;padding:16px;border:1px solid var(--border)}
+.note-modal-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.meta-item{background:var(--gray-50);border-radius:8px;padding:12px;border:1px solid var(--border)}
+.meta-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px}
+.meta-value{font-size:13px;font-weight:600;color:var(--text)}
+.note-modal-close{display:flex;justify-content:flex-end;margin-top:18px;gap:8px}
+.note-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.note-field{display:flex;flex-direction:column;gap:4px}
+.note-field-full{grid-column:span 2}
+.note-field-label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px}
+.note-field-input{font-family:Inter,sans-serif;font-size:13px;padding:8px 11px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);outline:none;width:100%}
+.note-field-input:focus{border-color:var(--red)}
+textarea.note-field-input{resize:vertical;min-height:100px}
+.resp-dropdown{position:relative;width:100%}
+.resp-trigger{font-family:Inter,sans-serif;font-size:13px;padding:8px 11px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);width:100%;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:6px;outline:none}
+.resp-trigger:focus,.resp-trigger.open{border-color:var(--red)}
+.resp-trigger-text{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.resp-trigger-arrow{font-size:10px;color:var(--text-muted);flex-shrink:0}
+.resp-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);z-index:500;max-height:240px;overflow-y:auto}
+.resp-menu-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--text);transition:background .1s}
+.resp-menu-item:hover{background:var(--gray-50)}
+.resp-menu-item input[type=checkbox]{accent-color:var(--red);width:15px;height:15px;cursor:pointer;flex-shrink:0}
+.resp-menu-divider{height:1px;background:var(--border);margin:4px 0}
+.resp-custom-row{display:flex;gap:6px;padding:8px 10px}
+.resp-custom-input{flex:1;font-family:Inter,sans-serif;font-size:12px;padding:6px 9px;border-radius:6px;border:1px solid var(--border);outline:none}
+.resp-custom-input:focus{border-color:var(--red)}
+.resp-custom-btn{padding:6px 12px;background:var(--red);color:var(--white);border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.resp-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.resp-tag{display:inline-flex;align-items:center;gap:4px;background:var(--red-light);color:var(--red);border:1px solid var(--red-mid);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:500}
+.resp-tag-remove{cursor:pointer;font-size:13px;line-height:1;color:var(--red);font-weight:700}
+.resp-tag-remove:hover{color:#8B0000}
+.resp-selected-box{margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--white)}
+.resp-selected-header{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;padding:8px 12px;background:var(--gray-50);border-bottom:1px solid var(--border)}
+.resp-selected-empty{padding:14px 12px;font-size:13px;color:var(--text-muted);font-style:italic}
+.resp-selected-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--gray-100);font-size:13px;color:var(--text)}
+.resp-selected-item:last-child{border-bottom:none}
+.resp-selected-name{display:flex;align-items:center;gap:8px}
+.resp-selected-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
+.resp-remove-btn{padding:3px 10px;border-radius:20px;border:1px solid var(--red-mid);background:var(--red-light);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.resp-remove-btn:hover{background:var(--red);color:var(--white)}
+.manage-resp-list{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--white);margin-top:12px;max-height:300px;overflow-y:auto}
+.manage-resp-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--gray-100);font-size:13px;color:var(--text)}
+.manage-resp-item:last-child{border-bottom:none}
+.manage-resp-item:hover{background:var(--gray-50)}
+.manage-resp-del{padding:3px 10px;border-radius:20px;border:1px solid var(--red-mid);background:var(--red-light);color:var(--red);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.manage-resp-del:hover{background:var(--red);color:var(--white)}
+.manage-resp-add-row{display:flex;gap:8px;margin-top:12px}
+.manage-resp-input{flex:1;font-family:Inter,sans-serif;font-size:13px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);outline:none;color:var(--text)}
+.manage-resp-input:focus{border-color:var(--red)}
+.btn-settings{display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:6px;font-family:Inter,sans-serif;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--gray-600);transition:all .15s}
+.btn-settings:hover{border-color:var(--red);color:var(--red)}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px)}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--gray-200);border-top-color:var(--red);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:14px}
+.loading-text{font-size:13px;color:var(--text-muted);font-weight:500}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--text-muted)}
+.sync-badge.ok{border-color:#00A651;color:#00A651;background:#E2F5EC}
+.sync-badge.saving{border-color:var(--orange);color:var(--orange);background:var(--ora-light)}
+.sync-badge.error{border-color:var(--red);color:var(--red);background:var(--red-light)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 32px;color:var(--text-muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px;margin-bottom:4px;color:var(--gray-600)}
+.empty-state small{font-size:12px}
+
+/* ── EMAIL ── */
+.email-section{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:24px;box-shadow:var(--shadow)}
+.email-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.email-title span{color:var(--red)}
+.email-sub{font-size:12px;color:var(--text-muted);margin-bottom:20px}
+.email-config{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.field-label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px}
+.field-input,.field-textarea{width:100%;font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);outline:none}
+.field-input:focus,.field-textarea:focus{border-color:var(--red)}
+.field-textarea{resize:vertical;min-height:56px}
+.email-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.email-preview{background:var(--gray-50);border:1px solid var(--border);border-radius:8px;padding:18px;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text);max-height:360px;overflow-y:auto;font-family:monospace}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,36,51,0.4);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(2px)}
+.modal-box{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md)}
+.modal-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
+.modal-title span{color:var(--red)}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.modal-grid .full{grid-column:span 2}
+.mfield label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+.mfield input,.mfield select,.mfield textarea{width:100%;font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--text);outline:none}
+.mfield input:focus,.mfield select:focus,.mfield textarea:focus{border-color:var(--red)}
+.mfield textarea{resize:vertical;min-height:70px}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.btn-ghost{background:var(--white);border:1px solid var(--border);color:var(--gray-600);padding:8px 16px;border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer}
+.btn-ghost:hover{border-color:var(--red);color:var(--red)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--gray-800);color:var(--white);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .2s;z-index:999;pointer-events:none;box-shadow:var(--shadow-md)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:900px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .email-config{grid-template-columns:1fr}
+  main{padding:20px 16px}
+  header{padding:0 16px}
+  .tabs-bar{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <img src="data:image/png;base64,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" alt="Avianca" style="height:36px;width:auto;object-fit:contain">
+    <div style="width:1px;height:34px;background:var(--gray-200);margin:0 14px"></div>
+    <div class="logo-text">
+      <span class="logo-name">Panel de Seguimiento SOX <span style="color:var(--red)">2026</span></span>
+      <span class="logo-sub">Dirección de Riesgos, Controles y Auditoría Interna</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="sync-badge" id="syncBadge">⬤ Conectando...</div>
+    <button class="btn-settings" onclick="openManageResps()" title="Gestionar lista de responsables">⚙ Responsables</button>
+    <button class="btn-action btn-outline" onclick="openNewTaskModal()">＋ Nueva actividad</button>
+    <button class="btn-action btn-red" onclick="exportHTML()">⬇ Exportar</button>
+  </div>
+</header>
+
+<div class="tabs-bar" id="tabsBar"></div>
+
+<main id="mainContent"></main>
+
+<!-- Modal nueva actividad -->
+<div class="modal-overlay" id="newTaskModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">Nueva <span>actividad</span></div>
+    <div class="modal-grid">
+      <div class="mfield full"><label>Frente / Categoría</label><input type="text" id="nFrente" placeholder="Ej: F1 · Inventarios"></div>
+      <div class="mfield full"><label>Actividad</label><input type="text" id="nActividad" placeholder="Nombre de la actividad..."></div>
+      <div class="mfield full"><label>Responsable</label><input type="text" id="nResp" placeholder="Nombre del responsable..."></div>
+      <div class="mfield"><label>Fecha inicio</label><input type="date" id="nInicio"></div>
+      <div class="mfield"><label>Fecha fin</label><input type="date" id="nFin"></div>
+      <div class="mfield"><label>Avance %</label><input type="number" id="nAvance" min="0" max="100" value="0"></div>
+      <div class="mfield"><label>Estado</label>
+        <select id="nStatus">
+          <option value="Pendiente">⭕ Pendiente</option>
+          <option value="On Track">🔵 On Track</option>
+          <option value="Concern">🟡 Concern</option>
+          <option value="Completada">✅ Completada</option>
+        </select>
+      </div>
+      <div class="mfield full"><label>Notas / próximos pasos</label><textarea id="nNota" placeholder="Due XX-Mes: descripción del paso siguiente..."></textarea></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeNewTaskModal()">Cancelar</button>
+      <button class="btn-action btn-red" onclick="saveNewTask()">Guardar actividad</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nueva pestaña -->
+<div class="modal-overlay" id="newTabModal" style="display:none">
+  <div class="modal-box" style="width:400px">
+    <div class="modal-title">Nuevo <span>seguimiento</span></div>
+    <div class="mfield">
+      <label>Nombre del seguimiento</label>
+      <input type="text" id="newTabName" placeholder="Ej: Seguimiento RCM AVH..." style="width:100%;margin-bottom:20px">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeNewTabModal()">Cancelar</button>
+      <button class="btn-action btn-red" onclick="saveNewTab()">Crear seguimiento</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════ DATA ═══════════════
+/* TABS_DATA_START */
+const tabsData = [
+  {
+    id: 'sox-ti',
+    name: 'Seguimiento SOX TI',
+    tasks: [
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Compartir con 1era línea de TI el universo preliminar de aplicaciones y herramientas en alcance SOX', resp:'José Escalona', fin:'2026-06-12', avance:1.0, status:'Completada', nota:''},
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Construir universo completo de aplicaciones y herramientas en alcance SOX', resp:'José Escalona / Adriana Romero', fin:'2026-06-26', avance:1.0, status:'Completada', nota:'Se envió preliminar (12/06) Delay: Tenemos pendiente algunas validaciones de conceptos sobre las ultimas soluciones identificas en los WT. Enviado versión final el 16/07'},
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Reevaluación de aplicativos en alcance SOX (base para definir el universo)', resp:'José Escalona / Adriana Romero', fin:'2026-08-15', avance:0.25, status:'On Track', nota:'Se ha realizado reevaluación para 21 soluciones de 83 que soportan procesos SOX'},
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Definir proceso de mantenimiento de la CMDB para altas, bajas y cambios de aplicativos y herramientas SOX', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-30', avance:1.0, status:'Completada', nota:'* Articularemos con el equipo ITSM para la entrega de éste procedimiento. * ITSM entrega 16 de julio * Luisa Veronica - nueva responsable * ITSM comparte link de docbox de publicaciión de link'},
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Ajustar el listado final de aplicaciones y herramientas SOX en la CMDB', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-29', avance:1.0, status:'Completada', nota:'Actualizaciones de empresa en CMDB según listado de aplicaciones y herramientas en alcance SOX según matriz V0.'},
+      {frente:'F1-A · Universo Aplicaciones', actividad:'Mapear infraestructura en alcance SOX (servidores de aplicación, servidores de bases de datos y base de datos) en la CMDB', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-29', avance:1.0, status:'Completada', nota:'Actualización de CMDB según listado de V0 de matriz.'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Determinar universo de Batch, Jobs, APIs, Webservices asociados a sistemas SOX (Preliminar)', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-12', avance:1.0, status:'Completada', nota:'Actualización listado de universo total de integraciones CMDB.'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Determinar universo de Batch, Jobs, APIs, Webservices asociados a sistemas SOX (Final)', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-30', avance:1.0, status:'Completada', nota:'Se liberó correo a los líderes y ejecutores. Se replantea la fecha. * Información consolidada de dominios: Contabilidad, Carga, TH * Confirmación equipo de mantenimiento no manejan SFTPS Fecha estimada de entrega 15/07/2026 Cargada la Info el 7 de julio de 2026'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Evaluar criticidad de estos componentes considerando procesamiento financiero, interfaces y controles automáticos para determina cuáles son SOX', resp:'José Escalona / Javier Valiente', fin:'2026-07-30', avance:0.85, status:'On Track', nota:'Delay: Dependemos de la entrega final por parte de TI 1ra línea - Información compartida el pasado 8 de julio. consolidado disponible en la fila 17 y 18. Se descargó la información provista por TI, se esta trabajando en un consolidado de información de los diferentes procesos SOX evaluados y se compararán ambos listados para identificar diferencias y notificarlas a TI.'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Actualizar el inventario del ITGC-17 y CMDB con los componentes identificados como SOX', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-29', avance:0.25, status:'On Track', nota:'**Aun en revision por parte de ITSM** Se realizó sesión de acercamiento con ITSM para incorporar la tabla que contenga los jobs en alcance SOX. Por parte de ITSM se están validando los campos y la posibilidad de almacenar los campos allí. El control a la fecha cubre y cumple con el inventario oficial a la fecha, si se requiere incorporar un nuevo job deberá ser informado por segunda línea para ase'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Garantizar que todos los componentes identificados como SOX se encuentran monitoreados por el ITGC-17', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza / José Escalona / Javier Valiente', fin:'2026-07-30', avance:0.35, status:'On Track', nota:'Delay: Respuesta pendiente a correo "RE: Validación alcance Jobs LM" por parte de segunda linea. Se recibió información por parte de segunda línea de los jobs de Lifemiles a incorporar en el ITGC, sin embargo, está pendiente la confirmación del proceso que incorpora cada job para asegurar el proceso El control a la fecha cubre y cumple con el inventario oficial a la fecha, si se requiere incorpora'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Actualizar la narrativa de los controles automáticos de interfaz en donde se incluya el detalle técnico de la transferencia de información (APIS, SFTP)', resp:'José Escalona / Javier Valiente', fin:'2026-06-26', avance:1.0, status:'Completada', nota:'Delay: Las narrativas de los controles ya fueron actualizadas, falta subir la información a Workiva. Se están incorporando controles de interfaz nuevos.'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Confirmar que los componentes tecnológicos mencionados en los controles automáticos de interfaz se encuentran incluidos en los inventarios', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza / José Escalona / Javier Valiente', fin:'2026-06-30', avance:0.95, status:'On Track', nota:'Delay: Pendiente definir con segunda línea el listado de componentes.'},
+      {frente:'F1-B · Batch/Jobs/APIs', actividad:'Ajuste de narrativa de los controles automáticos de interfaz con el equipo de TI (relacionado con las actividad 6)', resp:'Javier Valiente Juan Carlos Rodriguez', fin:'2026-07-31', avance:0.9, status:'On Track', nota:'Se están ajustando en las narrativas de los controles el detalle de los STFP (los administrados por la compañía y los terceros), quitar el nombre Azure API Management y solo dejar API, también el detalle de los workers en ARO.'},
+      {frente:'F1-C · Repositorios', actividad:'Finalizar el formato de inventario de repositorios del proceso de ingresos (formato Excel)', resp:'Karen Vargas', fin:'2026-06-12', avance:1.0, status:'Completada', nota:''},
+      {frente:'F1-C · Repositorios', actividad:'Revisar el formato de inventario de repositorios del proceso de ingresos elaborado por Karen Vargas (formato Excel)', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-18', avance:1.0, status:'Completada', nota:'El formato se definió en conjunto con el equipo de Karen y es el oficial a la fecha para la actualización en todos los dominios.'},
+      {frente:'F1-C · Repositorios', actividad:'Replicar el template con gerentes de dominio responsables de los demás procesos en alcance SOX', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-22', avance:1.0, status:'Completada', nota:'Misma actividad de la fila 18'},
+      {frente:'F1-C · Repositorios', actividad:'Garantizar que todos los servidores que tienen repositorios SOX se encuentren en alcance de los controles de infraestructura', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-10', avance:1.0, status:'Completada', nota:'Se realizó la marcación de servidores de repositorios SFTP / Blob storage en la CMDB incluído Lifemiles. Servidores del lado de av identificados y marcados como SOX en CMDB'},
+      {frente:'F1-C · Repositorios', actividad:'Consolidar inventario de repositorios en alcance SOX y confirmar si se puede mapear en la CMDB', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-30', avance:0.9, status:'On Track', nota:'Delay: Pendiente definir con segunda línea el listado de respositorios a CA en alcance para incorporar en CMDB. El consolidado ya se encuentra y se compartió a Segunda Línea. Se realizó sesión de acercamiento con ITSM para incorporar la tabla que contenga los jobs en alcance SOX. Por parte de ITSM se están validando los campos y la posibilidad de almacenar los campos allí.'},
+      {frente:'F2 · Sistemas en WT', actividad:'Presentar el plan de aseguramiento por sistema, incluyendo los controles de accesos, cambios a programas, monitoreo y demás controles aplicables', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-30', avance:0.85, status:'On Track', nota:'30/07/2026: El 24/07/2026 se compartio matriz preliminar de controles por herramienta evaluados a la fecha, a la fecha se continua en la actividad de actualización de dicha matriz considerando los nuevos sistemas que han entreado en alcanc. 01/07/2026 - En ésta actividad a nivel de cronograma continúa en proceso para plasmar en éste reporte. A nivel interno, cada vez que el equipo de 2da línea rep'},
+      {frente:'F2 · Sistemas en WT', actividad:'Definir tratamiento por sistema durante el periodo descubierto: control de proceso, certificación, backtesting o exclusión justificada', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-30', avance:0.85, status:'On Track', nota:'01/07/2026 - En ésta actividad a nivel de cronograma continúa en proceso para plasmar en éste reporte. A nivel interno, cada vez que el equipo de 2da línea reporta un nuevo sistema, los especialistas contactan a los equipos operativos, realizan un kickoff de actividades a asegurar, se establecen compromisos y si aplica algún tipo de reporte (SOC) se lleva a cargo gestión con el tercero - Nueva fec'},
+      {frente:'F2 · Sistemas en WT', actividad:'Validar el cumplimiento de los controles ITGC para las nuevas aplicaciones', resp:'Liliana Pedraza', fin:'2026-09-30', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F3 · SOC Reports', actividad:'Priorizar sistemas/proveedores críticos para tratamiento inmediato', resp:'José Escalona / Javier Valiente', fin:'2026-06-11', avance:1.0, status:'Completada', nota:''},
+      {frente:'F3 · SOC Reports', actividad:'Confirmar tipo de cobertura requerida por aplicación/proveedor: ITGC, controles manuales o controles de aplicación - Manuales tecnicos /Procedimientos', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza / José Escalona / Javier Valiente', fin:'2026-06-19', avance:1.0, status:'Completada', nota:'Realizamos la reunión con los gerentes de dominios para explicar el objetivo. Delay: Se compartió listado de controles de aplicación identificados en el proceso (preliminar). Pendiente de la finalización de revisión de controles de interfaz. 15/7/2026: Se compartió versión final del archivo'},
+      {frente:'F3 · SOC Reports', actividad:'Entrega de manuales técnicos/Procedimientos - Aplicativos', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-15', avance:0.6, status:'On Track', nota:'Se recibe por parte de 2da linea 15/07/2026 listado de controles automaticos. Acercamiento con gerentes de dominio, lideres tecnicos inicio desde el 08/07/2026. Para controles de LM (confirmación reibida el 27/07) LM-CA001-F - Revisión de código fuente LM-CA011-F - Revisión de código fuente LM-CA014-F - Revisión de código fuente LM-CA015-F - Se envió solicitud de documentación a proveedor IBS LM-C'},
+      {frente:'F3 · SOC Reports', actividad:'Revisión de los manuales técnicos/Procedimientos', resp:'José Escalona / Javier Valiente', fin:'2026-07-31', avance:0.0, status:'Pendiente', nota:'Delayed'},
+      {frente:'F3 · SOC Reports', actividad:'Contactar proveedores críticos y solicitar SOC Report, según cobertura definida (ver detalle)', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-06-30', avance:0.6, status:'On Track', nota:'Se realizan actividades de socialización y obtención de los reportes SOC con los proveedores Ejem (Netline - AIMS - Wings - Alertran - AIRNGURU) Ver pestaña de cronograma de SOC reports'},
+      {frente:'F3 · SOC Reports', actividad:'Evaluar evidencia recibida: período, alcance, controles relevantes, excepciones y CUECs', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-31', avance:0.05, status:'On Track', nota:'Se revisó y evaluó el SOC interino de Miatech. Se recopilan observaciones de auditoría y se encuentra en proceso de ajuste.'},
+      {frente:'F3 · SOC Reports', actividad:'Definir procedimiento alternativo cuando no exista SOC Report o evidencia suficiente', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza / José Escalona / Javier Valiente', fin:'2026-07-31', avance:0.0, status:'Pendiente', nota:'Para 2-Jul se debe presentar por parte del equipo de TI (Cristian, Sandra, Diego), el listado de proveedores que no presentarán SOC Report *ATPCO, a la fecha no ha confirmado la posibilidad de generar un SOC Report, en comunicación con GOL se solicito por parte del proveedor generar una sesión de entendimiento con representantes de Avianca, dicha reunión no se a generado. *NETLINE, Luftansa inform'},
+      {frente:'F4 · Hallazgos', actividad:'(Interno) Definir formato de tracker para hallazgos, brechas y oportunidades SOX TI', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-30', avance:0.8, status:'On Track', nota:'Se tiene un formato versión inicial del Deficiency Tracker. Falta alineación con segunda y tercera línea para definir responsabilidades. Se evaluará la implementación de Workiva para el seguimiento de planes de acción de manera integrada. 23 jul - Se socializa avance del rastreador de deficiencias con el equipo de auditoría.'},
+      {frente:'F4 · Hallazgos', actividad:'(Interno) Definir criterios de clasificación: origen, severidad, riesgo SOX, owner, fecha compromiso y evidencia requerida', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-30', avance:0.8, status:'On Track', nota:'23 jul - Se socializa avance del rastreador de deficiencias con el equipo de auditoría. Se realiza poblamiento de la matriz según los informes'},
+      {frente:'F4 · Hallazgos', actividad:'(Interno) Alinear governance de seguimiento: frecuencia, responsables, herramienta y criterio de cierre', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-30', avance:0.5, status:'On Track', nota:''},
+      {frente:'F4 · Hallazgos', actividad:'Registrar hallazgos identificados y asignar owner, plan de acción y fecha compromiso', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'2026-07-30', avance:0.8, status:'On Track', nota:'23 jul - Se socializa avance del rastreador de deficiencias con el equipo de auditoría.'},
+      {frente:'F4 · Hallazgos', actividad:'Validar cierre sujeto a recepción de evidencia suficiente por parte de los owners.', resp:'Cristian Ramirez Sandra Valderrama / Diego Meza', fin:'', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F5-G · Walkthrough ITGC', actividad:'Agendar reunión certificación uso de transacciones criticas (ITGC 12)', resp:'Javier Valiente', fin:'2026-06-15', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-G · Walkthrough ITGC', actividad:'Agendar reunión creación y modificación de JOBs (ITGC 01)', resp:'Javier Valiente', fin:'2026-06-12', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-G · Walkthrough ITGC', actividad:'Información pendiente de entrega a PwC relacionadas con las políticas y procedimientos de TI (ITGC 3, 6 NSAP, 17 y 18', resp:'Cristian Ramirez', fin:'2026-05-19', avance:1.0, status:'Completada', nota:'Se han definido y entregado los documentos solicitados que existen y son dependientes de nuestra coordinación. Se entrega el ITGC-18 el 19-jun'},
+      {frente:'F5-H · Evaluación Diseño', actividad:'Recibir políticas, procedimientos, hojas de vida de aplicaciones y evidencias requeridas', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'2026-06-15', avance:1.0, status:'Completada', nota:'Versión final enviada 18-jun'},
+      {frente:'F5-H · Evaluación Diseño', actividad:'Evaluar controles por dominio, considerando objetivo, riesgo mitigado, responsable, frecuencia, evidencia y tratamiento de excepciones', resp:'José Escalona / Javier Valiente / PwC', fin:'2026-06-12', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-H · Evaluación Diseño', actividad:'Validar si el diseño del control mitiga el riesgo SOX y si existe evidencia suficiente de ejecución', resp:'José Escalona / Javier Valiente / PwC', fin:'2026-06-15', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-H · Evaluación Diseño', actividad:'Documentar deficiencias de diseño, operación o ausencias de control, junto con recomendaciones preliminares', resp:'PwC', fin:'2026-06-15', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-I · Identificación Brechas', actividad:'Cerrar evaluación de diseño y operación de controles por dominio ITGC', resp:'PwC', fin:'2026-06-19', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-I · Identificación Brechas', actividad:'Consolidar brechas preliminares identificadas durante walkthroughs y evaluación de controles', resp:'PwC', fin:'2026-06-19', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-I · Identificación Brechas', actividad:'Clasificar brechas por dominio ITGC, aplicación/herramienta, riesgo SOX y tipo de deficiencia', resp:'PwC / Jose Escalona', fin:'2026-06-20', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-I · Identificación Brechas', actividad:'Definir propuesta de acción por brecha: ajuste de control existente, nuevo control o procedimiento alternativo', resp:'PwC / Jose Escalona', fin:'2026-06-21', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-I · Identificación Brechas', actividad:'Preparar matriz preliminar de brechas, responsables, acciones sugeridas, fechas objetivo y evidencia requerida', resp:'PwC / Jose Escalona', fin:'2026-06-22', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Incorporar controles ajustados o nuevos derivados de las brechas preliminares', resp:'PwC', fin:'2026-06-24', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Validar consistencia entre los riesgos, dominio ITGC, aplicación/herramienta, controles y evidencia requerida', resp:'PwC', fin:'2026-06-26', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Revisar owner, frecuencia, tipo de control, criterios de ejecución y tratamiento de excepciones', resp:'PwC', fin:'2026-06-27', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Preparar versión preliminar de matriz ITGC actualizada para validación con primera línea TI', resp:'PwC', fin:'2026-06-30', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'•Dep.: Formalización final sujeta a validación de brechas y controles ajustados / nuevos.', resp:'PwC', fin:'2026-07-17', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Situaciones identificadas - Controles generales de TI', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza / PwC / Jose Escalona', fin:'2026-07-30', avance:1.0, status:'Completada', nota:'Se enviará matriz con comentarios a segunda línea con el detalle de observaciones (Aceptar - revisar - No aplica)'},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Comentarios sobre el diseño de los controles ITGC\'s liberado por PwC', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'2026-08-06', avance:0.2, status:'On Track', nota:'En sesión del 3 de agosto se deja la tarea para que la primera línea revice el diseño de los contorles ITGC\'s propuesta por PwC y deje sus comentarios.'},
+      {frente:'F5-J · Actualización Matriz ITGCs', actividad:'Comentarios sobre el diseño de los controles ITGC\'s liberado por Primera línea', resp:'José Escalona', fin:'2026-08-06', avance:0.0, status:'On Track', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Compartir con 1era línea de TI el universo preliminar de aplicaciones y herramientas en alcance SOX', resp:'José Escalona, Javier Valiente', fin:'2026-06-12', avance:1.0, status:'Completada', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Construir universo completo de aplicaciones y herramientas en alcance SOX', resp:'José Escalona, Javier Valiente', fin:'2026-06-26', avance:1.0, status:'Completada', nota:'Se envió preliminar (12/06) Delay: Tenemos pendiente algunas validaciones de conceptos sobre las ultimas soluciones identificas en los WT.'},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Actualizar o definir controles ITGC aplicables sobre herramientas', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'2026-07-10', avance:0.8, status:'On Track', nota:'El 24/07/2026 se compartio matriz preliminar de controles por herramienta evaluados a la fecha, a la fecha se continua en la actividad de actualización de dicha matriz considerando los nuevos sistemas que han entreado en alcance.'},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Realizar los walkthroughs de los procesos asociados a cada proceso de dominio', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Evaluar diseño y evidencia de operación de controles existentes por dominio ITGC', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Presentar plan de Aseguramiento Herramientas', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza', fin:'2026-08-31', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Coordinar las reuniones para validar 53 controles automáticos priorizados por EY', resp:'Liliana Pedraza', fin:'2026-07-30', avance:0.82, status:'On Track', nota:''},
+      {frente:'F5-K · ITGCs Herramientas', actividad:'Revisar el proceso de accesos a intercompany por personas de otras compañías (Actualizar flujo de aprobación/notificación de bajas)', resp:'Cristian Ramirez / Sandra Valderrama / Diego Meza / José Escalona', fin:'', avance:0.0, status:'Pendiente', nota:''},
+      {frente:'F6 · Migración BD LifeMiles', actividad:'Reuniones de entendimiento - proceso de migración', resp:'Cristian Ramirez / José Escalona', fin:'', avance:0.1, status:'Pendiente', nota:''},
+    ]
+  },
+  { id: 'ci-ti',    name: 'Seguimiento IT Control Interno',    tasks: [] },
+  { id: 'ci-wamos', name: 'Seguimiento Control Interno WAMOS', tasks: [] },
+  { id: 'condicion-retorno', name: 'Seguimiento Condicion de Retorno', tasks: [] },
+];
+/* TABS_DATA_END */
+
+// ═══════════════ STATE ═══════════════
+let activeTabId = tabsData[0].id;
+let tabFilters  = {};
+tabsData.forEach(t => { tabFilters[t.id] = {status:'all', resp:'', search:''}; });
+const today = new Date();
+
+// ═══════════════ HELPERS ═══════════════
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d+'T00:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'});
+}
+function computeStatus(t) {
+  if (t.status==='Completada') return 'Completada';
+  if (t.fin && new Date(t.fin+'T00:00:00') < today) return 'Atrasada';
+  return t.status;
+}
+function statusClass(s){
+  return {Completada:'s-completada','On Track':'s-on-track',Concern:'s-concern',Pendiente:'s-pendiente',Atrasada:'s-atrasada'}[s]||'s-pendiente';
+}
+function fillColor(s){
+  return {Completada:'var(--green)','On Track':'var(--blue)',Concern:'var(--orange)',Atrasada:'var(--red)'}[s]||'var(--gray-200)';
+}
+function frenteClass(f){
+  const fl = f.toLowerCase();
+  if(fl.includes('f1')) return 'ft-f1';
+  if(fl.includes('f2')) return 'ft-f2';
+  if(fl.includes('f3')) return 'ft-f3';
+  if(fl.includes('f4')) return 'ft-f4';
+  if(fl.includes('f5')) return 'ft-f5';
+  if(fl.includes('f6')) return 'ft-f6';
+  return 'ft-gen';
+}
+function getTab(id){ return tabsData.find(t=>t.id===id); }
+function currentTab(){ return getTab(activeTabId); }
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ═══════════════ TABS BAR ═══════════════
+function renderTabsBar(){
+  document.getElementById('tabsBar').innerHTML =
+    tabsData.map(t=>`<button class="tab-btn${t.id===activeTabId?' active':''}" onclick="switchTab('${t.id}')">${t.name}</button>`).join('')
+    + `<button class="tab-add" onclick="openNewTabModal()">＋ Nuevo</button>`;
+}
+function switchTab(id){ activeTabId=id; renderTabsBar(); renderMain(); }
+
+// ═══════════════ MAIN RENDER ═══════════════
+function renderMain(){
+  const tab = currentTab();
+  const f   = tabFilters[tab.id];
+  const mc  = document.getElementById('mainContent');
+
+  let list = tab.tasks.filter(t=>{
+    const st=computeStatus(t);
+    if(f.status==='completada' && st!=='Completada') return false;
+    if(f.status==='on-track'   && st!=='On Track')   return false;
+    if(f.status==='concern'    && st!=='Concern')     return false;
+    if(f.status==='pendiente'  && st!=='Pendiente')   return false;
+    if(f.status==='atrasada'   && st!=='Atrasada')    return false;
+    if(f.resp && !t.resp.toLowerCase().includes(f.resp.toLowerCase())) return false;
+    if(f.search){const q=f.search.toLowerCase(); if(!(t.actividad+t.frente+t.resp+(t.nota||'')).toLowerCase().includes(q)) return false;}
+    return true;
+  });
+
+  const all    = tab.tasks;
+  const comp   = all.filter(t=>computeStatus(t)==='Completada').length;
+  const track  = all.filter(t=>computeStatus(t)==='On Track').length;
+  const conc   = all.filter(t=>computeStatus(t)==='Concern').length;
+  const pend   = all.filter(t=>computeStatus(t)==='Pendiente').length;
+  const atras  = all.filter(t=>computeStatus(t)==='Atrasada').length;
+
+  const resps = [...new Set(all.flatMap(t=>t.resp.split('/').map(r=>r.trim())))].filter(Boolean).sort();
+  const respOpts = resps.map(r=>`<option value="${r}" ${f.resp===r?'selected':''}>${r}</option>`).join('');
+
+  mc.innerHTML = `
+    <div class="page-header">
+      <div class="page-title">${tab.name.replace('Seguimiento','<span>Seguimiento</span>')}</div>
+      <div class="page-sub">Proyecto SOX 2026 · Dirección de Riesgos, Controles y Auditoría Interna · Actualizado: ${today.toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})}</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card stat-completada"><div class="stat-top-bar"></div><div class="stat-num">${comp}</div><div class="stat-label">Completadas</div></div>
+      <div class="stat-card stat-ontrack"><div class="stat-top-bar"></div><div class="stat-num">${track}</div><div class="stat-label">On Track</div></div>
+      <div class="stat-card stat-concern"><div class="stat-top-bar"></div><div class="stat-num">${conc}</div><div class="stat-label">Concern</div></div>
+      <div class="stat-card stat-pendiente"><div class="stat-top-bar"></div><div class="stat-num">${pend}</div><div class="stat-label">Pendientes</div></div>
+      <div class="stat-card stat-atrasada"><div class="stat-top-bar"></div><div class="stat-num">${atras}</div><div class="stat-label">Atrasadas</div></div>
+    </div>
+
+    <div class="controls">
+      <button class="filter-btn${f.status==='all'?' active':''}" onclick="setFilter('status','all',this)">Todas</button>
+      <button class="filter-btn f-track${f.status==='on-track'?' active':''}" onclick="setFilter('status','on-track',this)">🔵 On Track</button>
+      <button class="filter-btn f-concern${f.status==='concern'?' active':''}" onclick="setFilter('status','concern',this)">🟡 Concern</button>
+      <button class="filter-btn${f.status==='pendiente'?' active':''}" onclick="setFilter('status','pendiente',this)">⭕ Pendiente</button>
+      <button class="filter-btn f-comp${f.status==='completada'?' active':''}" onclick="setFilter('status','completada',this)">✅ Completada</button>
+      <button class="filter-btn${f.status==='atrasada'?' active':''}" onclick="setFilter('status','atrasada',this)" style="--active-bg:var(--red)">⚠ Atrasada</button>
+      <select class="ctrl-select" onchange="setFilter('resp',this.value)">
+        <option value="">Todos los responsables</option>
+        ${respOpts}
+      </select>
+      <input class="ctrl-search" type="text" placeholder="Buscar actividad, nota..." value="${f.search}" oninput="setFilter('search',this.value)">
+    </div>
+
+    <div class="table-wrap">
+      ${all.length===0 ? `
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <p>Sin actividades aún</p>
+          <small>Usa "＋ Nueva actividad" para comenzar a cargar el seguimiento.</small>
+        </div>` :
+      list.length===0 ? `<div class="no-results">Sin resultados con los filtros aplicados.</div>` :
+      `<table>
+        <thead><tr>
+          <th style="width:130px">Frente</th>
+          <th>Actividad</th>
+          <th style="width:160px">Responsable</th>
+          <th style="width:90px">Fecha fin</th>
+          <th style="width:110px">Avance</th>
+          <th style="width:115px">Estado</th>
+          <th style="width:120px">Actualizar</th>
+        </tr></thead>
+        <tbody>
+          ${list.map(t=>{
+            const st  = computeStatus(t);
+            const pct = Math.round(t.avance*100);
+            const fc  = fillColor(st);
+            const realIdx = tab.tasks.indexOf(t);
+            const flag = st==='Concern'?`<span class="flag-concern">CONCERN</span>`
+                        :st==='Atrasada'?`<span class="flag-atrasada">ATRASADA</span>`:'';
+            const isOverdue = st==='Atrasada';
+            return `<tr>
+              <td style="vertical-align:middle">
+                <span class="frente-tag ${frenteClass(t.frente)}">${t.frente}</span>
+              </td>
+              <td>
+                <span class="task-name task-link" onclick="openNoteModal(${realIdx})" title="Ver observaciones">${t.actividad}</span>${flag}
+              </td>
+              <td><span class="resp-text">${t.resp}</span></td>
+              <td><span class="date-text${isOverdue?' date-overdue':''}">${fmtDate(t.fin)}</span></td>
+              <td>
+                <div class="pbar-wrap">
+                  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${fc}"></div></div>
+                  <span class="pct-text">${pct}%</span>
+                </div>
+              </td>
+              <td><span class="status-pill ${statusClass(st)}">${st}</span></td>
+              <td>
+                <select class="status-select" onchange="updateStatus('${tab.id}',${realIdx},this.value)">
+                  <option value="Pendiente"  ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
+                  <option value="On Track"   ${t.status==='On Track'?'selected':''}>On Track</option>
+                  <option value="Concern"    ${t.status==='Concern'?'selected':''}>Concern</option>
+                  <option value="Completada" ${t.status==='Completada'?'selected':''}>Completada</option>
+                </select>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`}
+    </div>
+
+    <div class="email-section">
+      <div class="email-title">Reporte de Avance · <span>Correo</span></div>
+      <div class="email-sub">Genera un correo con el estado actual de ${tab.name}${f.resp?' — Responsable: '+f.resp:''}.</div>
+      <div class="email-config">
+        <div><label class="field-label">Para</label><input class="field-input" id="emailTo" value="Jose Escalona, Javier Valiente"></div>
+        <div><label class="field-label">De parte de</label><input class="field-input" id="emailFrom" value="Jose Escalona"></div>
+        <div style="grid-column:span 2"><label class="field-label">Nota adicional</label><textarea class="field-textarea" id="emailNote" placeholder="Comentario adicional..."></textarea></div>
+      </div>
+      <div class="email-btns">
+        <button class="btn-action btn-red" onclick="generateEmail()">⚡ Generar correo</button>
+        <button class="btn-action btn-outline" onclick="copyEmail()">📋 Copiar</button>
+        <button class="btn-action btn-outline" onclick="openMailto()">✉ Abrir en correo</button>
+      </div>
+      <div class="divider"></div>
+      <div class="email-preview" id="emailPreview">← Haz clic en "Generar correo" para previsualizar.</div>
+    </div>
+  `;
+}
+
+// ═══════════════ FILTERS ═══════════════
+function setFilter(key,val,btn){
+  tabFilters[activeTabId][key]=val;
+  if(key==='status'&&btn){
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderMain();
+}
+
+// ═══════════════ STATUS UPDATE ═══════════════
+function updateStatus(tabId,idx,newStatus){
+  const tab=getTab(tabId);
+  tab.tasks[idx].status=newStatus;
+  if(newStatus==='Completada') tab.tasks[idx].avance=1;
+  if(newStatus==='On Track'&&tab.tasks[idx].avance===0) tab.tasks[idx].avance=0.1;
+  renderMain(); showToast('Estado actualizado ✓');
+}
+
+// ═══════════════ NUEVA ACTIVIDAD ═══════════════
+function openNewTaskModal(){ document.getElementById('newTaskModal').style.display='flex'; }
+function closeNewTaskModal(){
+  document.getElementById('newTaskModal').style.display='none';
+  ['nFrente','nActividad','nResp','nNota'].forEach(id=>document.getElementById(id).value='');
+  ['nInicio','nFin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nAvance').value=0;
+  document.getElementById('nStatus').value='Pendiente';
+}
+function saveNewTask(){
+  const actividad=document.getElementById('nActividad').value.trim();
+  if(!actividad){ alert('El nombre de la actividad es obligatorio.'); return; }
+  currentTab().tasks.push({
+    frente:    document.getElementById('nFrente').value.trim()||'General',
+    actividad: actividad,
+    resp:      document.getElementById('nResp').value.trim()||'TBD',
+    fin:       document.getElementById('nFin').value,
+    avance:    (parseInt(document.getElementById('nAvance').value)||0)/100,
+    status:    document.getElementById('nStatus').value,
+    nota:      document.getElementById('nNota').value.trim(),
+  });
+  closeNewTaskModal(); renderMain(); showToast('Actividad agregada ✓');
+}
+
+// ═══════════════ NUEVA PESTAÑA ═══════════════
+function openNewTabModal(){ document.getElementById('newTabModal').style.display='flex'; setTimeout(()=>document.getElementById('newTabName').focus(),100); }
+function closeNewTabModal(){ document.getElementById('newTabModal').style.display='none'; document.getElementById('newTabName').value=''; }
+function saveNewTab(){
+  const name=document.getElementById('newTabName').value.trim();
+  if(!name){ alert('El nombre es obligatorio.'); return; }
+  const id='tab-'+Date.now();
+  tabsData.push({id,name,tasks:[]});
+  tabFilters[id]={status:'all',resp:'',search:''};
+  closeNewTabModal(); switchTab(id); showToast('Seguimiento creado ✓');
+}
+
+// ═══════════════ EMAIL ═══════════════
+function generateEmail(){
+  const tab=currentTab(); const f=tabFilters[tab.id];
+  const to=document.getElementById('emailTo').value;
+  const from=document.getElementById('emailFrom').value;
+  const note=document.getElementById('emailNote').value;
+  const scope=f.resp?tab.tasks.filter(t=>t.resp.toLowerCase().includes(f.resp.toLowerCase())):tab.tasks;
+  const total=scope.length;
+  const comp=scope.filter(t=>computeStatus(t)==='Completada').length;
+  const track=scope.filter(t=>computeStatus(t)==='On Track').length;
+  const conc=scope.filter(t=>computeStatus(t)==='Concern').length;
+  const pend=scope.filter(t=>computeStatus(t)==='Pendiente').length;
+  const atras=scope.filter(t=>computeStatus(t)==='Atrasada');
+  const avg=total?Math.round(scope.reduce((a,t)=>a+t.avance,0)/total*100):0;
+  const dateStr=today.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const respLbl=f.resp?' | Responsable: '+f.resp:'';
+  const atrasasList=atras.map(t=>`  • [${t.frente}] ${t.actividad}\n    Vencía: ${fmtDate(t.fin)} — Resp.: ${t.resp}`).join('\n');
+  const concernList=scope.filter(t=>computeStatus(t)==='Concern').map(t=>`  • [${t.frente}] ${t.actividad} — ${Math.round(t.avance*100)}%\n    Resp.: ${t.resp}`).join('\n');
+  const trackList=scope.filter(t=>computeStatus(t)==='On Track'&&t.avance>0).map(t=>`  • [${t.frente}] ${t.actividad} — ${Math.round(t.avance*100)}%`).join('\n');
+  const body=`Asunto: ${tab.name}${respLbl} — ${today.toLocaleDateString('es-CO')}\n\nPara: ${to}\nDe: ${from}\nFecha: ${dateStr}\n\n────────────────────────────────────────────\n${tab.name.toUpperCase()}${respLbl}\nDirección de Riesgos, Controles y Auditoría Interna\n────────────────────────────────────────────\n\nRESUMEN EJECUTIVO\n─────────────────\n  Avance promedio:    ${avg}%\n  Total actividades:  ${total}\n  ✓ Completadas:      ${comp}\n  ↗ On Track:         ${track}\n  ⚡ Concern:         ${conc}\n  ○ Pendientes:       ${pend}\n  ⚠ Atrasadas:        ${atras.length}\n\n${atras.length>0?`ACTIVIDADES ATRASADAS — ATENCIÓN INMEDIATA\n────────────────────────────────────────────\n${atrasasList}\n\n`:''}${conc>0?`ACTIVIDADES EN CONCERN\n────────────────────────────────────────────\n${concernList}\n\n`:''}ACTIVIDADES ON TRACK\n────────────────────────────────────────────\n${trackList||'  (ninguna con avance registrado)'}\n\n${note?`COMENTARIOS ADICIONALES\n────────────────────────────────────────────\n${note}\n\n`:''}────────────────────────────────────────────\nReporte generado automáticamente · Panel Seguimiento SOX 2026\n────────────────────────────────────────────`;
+  document.getElementById('emailPreview').textContent=body;
+  showToast('Correo generado ✓');
+}
+function copyEmail(){
+  const txt=document.getElementById('emailPreview').textContent;
+  if(txt.startsWith('←')){showToast('Primero genera el correo ↑');return;}
+  navigator.clipboard.writeText(txt).then(()=>showToast('Copiado ✓'));
+}
+function openMailto(){
+  const txt=document.getElementById('emailPreview').textContent;
+  if(txt.startsWith('←')){showToast('Primero genera el correo ↑');return;}
+  const to=encodeURIComponent(document.getElementById('emailTo').value);
+  const sub=encodeURIComponent(txt.split('\n')[0].replace('Asunto: ',''));
+  window.location.href=`mailto:${to}?subject=${sub}&body=${encodeURIComponent(txt)}`;
+}
+
+// ═══════════════ EXPORT ═══════════════
+function exportHTML(){
+  const dataStr=JSON.stringify(tabsData,null,2);
+  let src=document.documentElement.outerHTML;
+  const marker='';
+  const s=src.indexOf(marker);
+  if(s!==-1) src=src.substring(0,s)+'/* TABS_DATA_START */\nconst tabsData = '+dataStr+';\n/* TABS_DATA_END */'+src.substring(s+marker.length);
+  const blob=new Blob([src],{type:'text/html'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='seguimiento_sox_2026.html'; a.click();
+  showToast('HTML exportado ✓');
+}
+
+// ═══════════════ INIT ═══════════════
+// ═══════════════ NOTE MODAL (EDITABLE) ═══════════════
+// Master list of responsables
+let RESP_LIST = [
+  'Jose Escalona',
+  'Javier Valiente',
+  'PwC',
+  'Cristian',
+  'Sandra',
+  'Diego',
+  'Karen Vargas',
+  'Adriana',
+  'Johana',
+  'Alejandra',
+  '1era Línea TI',
+  'Tercera Línea',
+  'TBD',
+];
+
+let nmSelectedResps = [];
+
+function openNoteModal(idx) {
+  const tab = currentTab();
+  const t   = tab.tasks[idx];
+  const st  = computeStatus(t);
+  const pct = Math.round(t.avance * 100);
+  const fc  = frenteClass(t.frente);
+
+  const existing = document.getElementById('noteModalOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'noteModalOverlay';
+  overlay.className = 'note-modal-overlay';
+  overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+
+  overlay.innerHTML = `
+    <div class="note-modal">
+      <span class="note-modal-frente ${fc}">${t.frente}</span>
+      <div class="note-modal-title">${t.actividad}</div>
+      <div class="note-modal-grid">
+        <div class="note-field note-field-full">
+          <label class="note-field-label">Responsables</label>
+          <div class="resp-dropdown" id="nm-resp-dropdown">
+            <button type="button" class="resp-trigger" id="nm-resp-trigger" onclick="toggleRespMenu()">
+              <span class="resp-trigger-text" id="nm-resp-trigger-text">Seleccionar responsables...</span>
+              <span class="resp-trigger-arrow">▼</span>
+            </button>
+            <div class="resp-menu" id="nm-resp-menu" style="display:none">
+              <div id="nm-resp-checkboxes"></div>
+              <div class="resp-menu-divider"></div>
+              <div class="resp-custom-row">
+                <input class="resp-custom-input" id="nm-resp-custom" placeholder="Agregar otro responsable..." onkeydown="if(event.key==='Enter'){addCustomResp();event.preventDefault()}">
+                <button class="resp-custom-btn" onclick="addCustomResp()">+ Agregar</button>
+              </div>
+            </div>
+          </div>
+          <div class="resp-tags" id="nm-resp-tags"></div>
+        </div>
+        <div class="note-field">
+          <label class="note-field-label">Fecha fin</label>
+          <input class="note-field-input" id="nm-fin" type="date" value="${t.fin||''}">
+        </div>
+        <div class="note-field">
+          <label class="note-field-label">Avance %</label>
+          <input class="note-field-input" id="nm-avance" type="number" min="0" max="100" value="${pct}">
+        </div>
+        <div class="note-field note-field-full">
+          <label class="note-field-label">Estado</label>
+          <select class="note-field-input" id="nm-status">
+            <option value="Pendiente"  ${t.status==='Pendiente'?'selected':''}>⭕ Pendiente</option>
+            <option value="On Track"   ${t.status==='On Track'?'selected':''}>🔵 On Track</option>
+            <option value="Concern"    ${t.status==='Concern'?'selected':''}>🟡 Concern</option>
+            <option value="Completada" ${t.status==='Completada'?'selected':''}>✅ Completada</option>
+          </select>
+        </div>
+        <div class="note-field note-field-full">
+          <label class="note-field-label">Observaciones / Próximos pasos</label>
+          <textarea class="note-field-input" id="nm-nota" rows="5" placeholder="Due XX-Mes: descripción...">${t.nota||''}</textarea>
+        </div>
+      </div>
+      <div class="note-modal-close">
+        <button class="btn-ghost" onclick="document.getElementById('noteModalOverlay').remove()">Cancelar</button>
+        <button class="btn-action btn-red" style="margin-left:8px" onclick="saveNoteModal(${idx})">Guardar cambios</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Init selected responsables from task
+  nmSelectedResps = t.resp ? t.resp.split('/').map(r=>r.trim()).filter(Boolean) : [];
+  renderRespCheckboxes();
+  renderRespTags();
+
+  // Close menu on outside click
+  document.addEventListener('click', closeRespMenuOnOutside);
+}
+
+function closeRespMenuOnOutside(e) {
+  const dropdown = document.getElementById('nm-resp-dropdown');
+  if (dropdown && !dropdown.contains(e.target)) {
+    const menu = document.getElementById('nm-resp-menu');
+    if (menu) menu.style.display = 'none';
+    const trigger = document.getElementById('nm-resp-trigger');
+    if (trigger) trigger.classList.remove('open');
+    document.removeEventListener('click', closeRespMenuOnOutside);
+  }
+}
+
+function toggleRespMenu() {
+  const menu = document.getElementById('nm-resp-menu');
+  const trigger = document.getElementById('nm-resp-trigger');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  trigger.classList.toggle('open', !isOpen);
+}
+
+function renderRespCheckboxes() {
+  const container = document.getElementById('nm-resp-checkboxes');
+  if (!container) return;
+  const allResps = [...new Set([...RESP_LIST, ...nmSelectedResps])];
+  container.innerHTML = allResps.map(r => `
+    <div class="resp-menu-item" style="justify-content:space-between">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex:1">
+        <input type="checkbox" ${nmSelectedResps.includes(r)?'checked':''} onchange="toggleResp('${r.replace(/'/g,"\'")}', this.checked)">
+        <span>${r}</span>
+      </label>
+      <button onclick="deleteRespFromList('${r.replace(/'/g,"\'")}', event)" title="Eliminar de la lista" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:15px;padding:0 4px;line-height:1;flex-shrink:0" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--gray-400)'">✕</button>
+    </div>`).join('');
+}
+
+function deleteRespFromList(name, event) {
+  event.stopPropagation();
+  if (!confirm('¿Eliminar "' + name + '" de la lista de responsables?')) return;
+  RESP_LIST.splice(RESP_LIST.indexOf(name), 1);
+  nmSelectedResps = nmSelectedResps.filter(r => r !== name);
+  renderRespCheckboxes();
+  renderRespTags();
+  updateRespTriggerText();
+  showToast('"' + name + '" eliminado de la lista ✓');
+}
+
+function toggleResp(name, checked) {
+  if (checked) {
+    if (!nmSelectedResps.includes(name)) nmSelectedResps.push(name);
+  } else {
+    nmSelectedResps = nmSelectedResps.filter(r => r !== name);
+  }
+  renderRespTags();
+  updateRespTriggerText();
+}
+
+function addCustomResp() {
+  const input = document.getElementById('nm-resp-custom');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!nmSelectedResps.includes(val)) {
+    nmSelectedResps.push(val);
+    renderRespCheckboxes();
+    renderRespTags();
+    updateRespTriggerText();
+  }
+  input.value = '';
+}
+
+function removeResp(name) {
+  nmSelectedResps = nmSelectedResps.filter(r => r !== name);
+  renderRespCheckboxes();
+  renderRespTags();
+  updateRespTriggerText();
+}
+
+function renderRespTags() {
+  const container = document.getElementById('nm-resp-tags');
+  if (!container) return;
+  if (nmSelectedResps.length === 0) {
+    container.innerHTML = `
+      <div class="resp-selected-box">
+        <div class="resp-selected-header">Responsables seleccionados</div>
+        <div class="resp-selected-empty">Ningún responsable seleccionado aún.</div>
+      </div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="resp-selected-box">
+      <div class="resp-selected-header">Responsables seleccionados (${nmSelectedResps.length})</div>
+      ${nmSelectedResps.map(r => `
+        <div class="resp-selected-item">
+          <div class="resp-selected-name">
+            <span class="resp-selected-dot"></span>
+            <span>${r}</span>
+          </div>
+          <button class="resp-remove-btn" onclick="removeResp('${r.replace(/'/g,"\'")}')">Quitar</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+function updateRespTriggerText() {
+  const el = document.getElementById('nm-resp-trigger-text');
+  if (!el) return;
+  el.textContent = nmSelectedResps.length > 0
+    ? nmSelectedResps.join(' / ')
+    : 'Seleccionar responsables...';
+}
+
+function saveNoteModal(idx) {
+  const tab = currentTab();
+  const t   = tab.tasks[idx];
+  t.resp    = nmSelectedResps.length > 0 ? nmSelectedResps.join(' / ') : t.resp;
+  t.fin     = document.getElementById('nm-fin').value;
+  t.avance  = (parseInt(document.getElementById('nm-avance').value) || 0) / 100;
+  t.status  = document.getElementById('nm-status').value;
+  t.nota    = document.getElementById('nm-nota').value.trim();
+  document.removeEventListener('click', closeRespMenuOnOutside);
+  document.getElementById('noteModalOverlay').remove();
+  renderMain();
+  showToast('Actividad actualizada ✓');
+}
+
+// ═══════════════ MANAGE RESPONSABLES ═══════════════
+function openManageResps() {
+  const existing = document.getElementById('manageRespOverlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'manageRespOverlay';
+  overlay.className = 'note-modal-overlay';
+  overlay.style.zIndex = '500';
+  overlay.onclick = (e) => { if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML = buildManageRespHTML();
+  document.body.appendChild(overlay);
+}
+
+function buildManageRespHTML() {
+  const items = RESP_LIST.map((r,i) => `
+    <div class="manage-resp-item">
+      <span>${r}</span>
+      <button class="manage-resp-del" onclick="deleteResp(${i})">Eliminar</button>
+    </div>`).join('');
+  return `
+    <div class="note-modal" style="width:440px">
+      <div class="modal-title">Gestionar <span>Responsables</span></div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Lista maestra de responsables disponibles en todas las actividades.</p>
+      <div class="manage-resp-list">
+        ${items || '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">Lista vacía</div>'}
+      </div>
+      <div class="manage-resp-add-row">
+        <input class="manage-resp-input" id="manage-resp-new" placeholder="Nombre del nuevo responsable..." onkeydown="if(event.key==='Enter') addRespToList()">
+        <button class="btn-action btn-red" onclick="addRespToList()">+ Agregar</button>
+      </div>
+      <div class="note-modal-close" style="margin-top:20px">
+        <button class="btn-ghost" onclick="document.getElementById('manageRespOverlay').remove()">Cerrar</button>
+      </div>
+    </div>`;
+}
+
+function deleteResp(idx) {
+  RESP_LIST.splice(idx, 1);
+  const overlay = document.getElementById('manageRespOverlay');
+  if (overlay) overlay.innerHTML = buildManageRespHTML();
+}
+
+function addRespToList() {
+  const input = document.getElementById('manage-resp-new');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!RESP_LIST.includes(val)) {
+    RESP_LIST.push(val);
+    const overlay = document.getElementById('manageRespOverlay');
+    if (overlay) overlay.innerHTML = buildManageRespHTML();
+    showToast('Responsable agregado ✓');
+  } else {
+    showToast('Ya existe en la lista');
+  }
+  input.value = '';
+}
+
+// ═══════════════ JSONBIN CONFIG ═══════════════
+const JSONBIN_BIN_ID = '6a9db3caf5f4af5e29723386';
+const JSONBIN_API_KEY = '$2a$10$4aAHbIKXdT8ReTyA1mUSxem3vij0IiFFyIEmK9sfhnQlF/HMysNim';
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+let isSaving = false;
+let saveTimeout = null;
+
+function setSyncBadge(state, msg) {
+  const el = document.getElementById('syncBadge');
+  if (!el) return;
+  el.className = 'sync-badge ' + state;
+  const icons = {ok:'✓', saving:'↑', error:'⚠', '':'⬤'};
+  el.textContent = (icons[state]||'⬤') + ' ' + msg;
+}
+
+function showLoading(msg) {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadingOverlay';
+    el.className = 'loading-overlay';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div class="loading-spinner"></div><div class="loading-text">${msg||'Cargando...'}</div>`;
+}
+
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) el.remove();
+}
+
+async function loadFromCloud() {
+  showLoading('Cargando datos...');
+  setSyncBadge('', 'Conectando...');
+  try {
+    const res = await fetch(JSONBIN_URL + '/latest', {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const record = data.record;
+    if (record && record.tabs && record.tabs.length > 0
+        && record.tabs.some(t => t.tasks && t.tasks.length > 0)) {
+      // Cloud has data — merge into tabsData
+      record.tabs.forEach(cloudTab => {
+        const existing = tabsData.find(t => t.id === cloudTab.id);
+        if (existing) {
+          existing.tasks = cloudTab.tasks;
+          existing.name  = cloudTab.name;
+        } else {
+          tabsData.push(cloudTab);
+          tabFilters[cloudTab.id] = {status:'all', resp:'', search:''};
+        }
+      });
+      if (record.respList && record.respList.length > 0) {
+        RESP_LIST.length = 0;
+        record.respList.forEach(r => RESP_LIST.push(r));
+      }
+    } else {
+      // Cloud is empty — push local data (first time setup)
+      console.log('Cloud empty — pushing local data...');
+      await saveToCloud();
+    }
+    setSyncBadge('ok', 'Sincronizado');
+  } catch(e) {
+    console.error('Load error:', e);
+    setSyncBadge('error', 'Sin conexión — modo local');
+  } finally {
+    hideLoading();
+    renderTabsBar();
+    renderMain();
+  }
+}
+
+async function saveToCloud() {
+  if (isSaving) return;
+  isSaving = true;
+  setSyncBadge('saving', 'Guardando...');
+  try {
+    const payload = {
+      tabs: tabsData.map(t => ({id:t.id, name:t.name, tasks:t.tasks})),
+      respList: [...RESP_LIST],
+      lastUpdated: new Date().toISOString()
+    };
+    const res = await fetch(JSONBIN_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    setSyncBadge('ok', 'Guardado ✓');
+  } catch(e) {
+    console.error('Save error:', e);
+    setSyncBadge('error', 'Error al guardar');
+  } finally {
+    isSaving = false;
+  }
+}
+
+// Auto-save with debounce after any change
+function scheduleSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => saveToCloud(), 1500);
+}
+
+// Patch all mutating functions to trigger save
+const _origUpdateStatus = updateStatus;
+updateStatus = function(tabId, idx, newStatus) {
+  _origUpdateStatus(tabId, idx, newStatus);
+  scheduleSave();
+};
+
+const _origSaveNewTask = saveNewTask;
+saveNewTask = function() {
+  _origSaveNewTask();
+  scheduleSave();
+};
+
+const _origSaveNewTab = saveNewTab;
+saveNewTab = function() {
+  _origSaveNewTab();
+  scheduleSave();
+};
+
+const _origSaveNoteModal = saveNoteModal;
+saveNoteModal = function(idx) {
+  _origSaveNoteModal(idx);
+  scheduleSave();
+};
+
+const _origDeleteResp = deleteRespFromList;
+deleteRespFromList = function(name, event) {
+  _origDeleteResp(name, event);
+  scheduleSave();
+};
+
+const _origAddRespToList = addRespToList;
+addRespToList = function() {
+  _origAddRespToList();
+  scheduleSave();
+};
+
+const _origDeleteRespMgr = deleteResp;
+deleteResp = function(idx) {
+  _origDeleteRespMgr(idx);
+  scheduleSave();
+};
+
+// Init — load from cloud first
+loadFromCloud();
+</script>
+</body>
+</html>
