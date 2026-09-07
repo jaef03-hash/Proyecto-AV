@@ -186,9 +186,10 @@ async function pullCloud(confirmed=false){if(syncBusy)return;if(!confirmed&&sync
 async function pushCloud(){if(!syncReady||!syncDirty||syncBusy)return;syncBusy=true;syncBadge('Guardando…');try{const remote=await cloudRequest('GET');if(JSON.stringify(remote)!==syncBase){syncReady=false;syncBadge('Cambios remotos · revisar');toast('Otra versión cambió en JSONBin. Descarga un respaldo antes de volver a cargar.');return}const snapshot=JSON.stringify(state);const payload={...state,lastUpdated:new Date().toISOString()};const saved=await cloudRequest('PUT',payload);syncBase=JSON.stringify(saved||payload);syncDirty=JSON.stringify(state)!==snapshot;syncBadge(syncDirty?'Cambios pendientes':'Sincronizado')}catch(e){syncBadge('Error de sincronización');toast('Tus cambios siguen guardados localmente: '+e.message)}finally{syncBusy=false;if(syncReady&&syncDirty)syncTimer=setTimeout(pushCloud,10000)}}
 const originalBackupModal=openBackup;openBackup=function(){originalBackupModal();document.querySelector('.modal-foot').insertAdjacentHTML('beforebegin','<button class="btn" onclick="exportHTML()">Descargar HTML con datos actuales</button><button class="btn" onclick="downloadPrevious()">Respaldo anterior a la sincronización</button>')};
 function downloadPrevious(){const b=localStorage.getItem(STORE+'_before_cloud');if(!b){toast('No hay una carga previa desde la nube');return}download(new Blob([b],{type:'application/json'}),'respaldo_previo_jsonbin.json')}
-function exportHTML(){const doc=document.documentElement.cloneNode(true);doc.querySelector('#modalHost').innerHTML='';doc.querySelector('#app').classList.add('hidden');doc.querySelector('#login').classList.remove('hidden');doc.querySelector('#historyDrawer').classList.add('hidden');doc.querySelector('#toast').classList.add('hidden');doc.querySelector('#syncBadgeText').textContent='Sin conectar';doc.querySelectorAll('script').forEach(el=>{el.textContent=el.textContent.replace(/const SEED_FRONT_COLORS=.*?;\n/,()=> 'const SEED_FRONT_COLORS='+JSON.stringify(state.frontColors||{}).replace(/</g,'\\u003c')+';\n').replace(/const SEED=\[.*?;\n/, 'const SEED='+JSON.stringify(state.tabs).replace(/</g,'\\u003c')+';\n').replace(/const OWNER_SEED=.*?;\n/,'const OWNER_SEED='+JSON.stringify(state.respList).replace(/</g,'\\u003c')+';\n')});download(new Blob(['<!DOCTYPE html>\n'+doc.outerHTML],{type:'text/html'}),'seguimiento_sox_exportado.html')}
+function exportHTML(){const doc=document.documentElement.cloneNode(true);doc.querySelector('#modalHost').innerHTML='';doc.querySelector('#app').classList.add('hidden');doc.querySelector('#login').classList.remove('hidden');doc.querySelector('#historyDrawer').classList.add('hidden');doc.querySelector('#toast').classList.add('hidden');doc.querySelector('#syncBadgeText').textContent='Sin conectar';doc.querySelectorAll('script').forEach(el=>{el.textContent=el.textContent.replace(/const SEED_FRONT_COLORS=.*?;\n/,()=> 'const SEED_FRONT_COLORS='+JSON.stringify(state.frontColors||{}).replace(/</g,'\\u003c')+';\n').replace(/const SEED=\[.*?;\n/, 'const SEED='+JSON.stringify(state.tabs).replace(/</g,'\\u003c')+';\n').replace(/const OWNER_SEED=.*?;\n/,'const OWNER_SEED='+JSON.stringify(state.respList).replace(/</g,'\\u003c')+';\n').replace(/const ACCOUNTS_SEED=.*?;\n/,'const ACCOUNTS_SEED='+JSON.stringify(demoAccounts).replace(/</g,'\\u003c')+';\n')});download(new Blob(['<!DOCTYPE html>\n'+doc.outerHTML],{type:'text/html'}),'seguimiento_sox_exportado.html')}
 
-let demoAccounts=(()=>{try{const saved=localStorage.getItem(STORE+'_accounts');return saved?JSON.parse(saved):clone(USERS)}catch(e){return clone(USERS)}})();
+const ACCOUNTS_SEED=clone(USERS);
+let demoAccounts=(()=>{try{const saved=localStorage.getItem(STORE+'_accounts');return saved?JSON.parse(saved):clone(ACCOUNTS_SEED)}catch(e){return clone(ACCOUNTS_SEED)}})();
 for(const [email,user] of Object.entries(demoAccounts)){if(email==='javier.valiente@avianca.com'||!['Administrador','Editor','Visualizador'].includes(user.role))delete demoAccounts[email]}
 localStorage.setItem(STORE+'_accounts',JSON.stringify(demoAccounts));
 function openUsers(){if(!session||session.role!=='Administrador')return;showModal('<h2>Usuarios y accesos</h2><p>Configuración de demostración en este navegador. Estas cuentas no generan invitaciones ni acceso seguro en línea.</p>'+Object.entries(demoAccounts).map(([email,u],i)=>'<div class="evidence"><span><b>'+esc(u.name)+'</b><br>'+esc(email)+'<br>'+esc(u.role)+' · '+(u.active===false?'Inactivo':'Activo')+'</span>'+(email!==session.email?'<button class="btn" onclick="toggleUser('+i+')">'+(u.active===false?'Activar':'Desactivar')+'</button><button class="btn" onclick="deleteUser('+i+')">Eliminar usuario</button>':'<span>Tu cuenta</span>')+'</div>').join('')+'<h3>Agregar o actualizar usuario</h3><div class="grid2"><label><span class="label">Nombre</span><input id="uName" class="control"></label><label><span class="label">Apellido</span><input id="uLastName" class="control"></label><label><span class="label">Correo</span><input id="uEmail" class="control" type="email"></label><label><span class="label">Rol</span><select id="uRole" class="control"><option>Editor</option><option>Visualizador</option></select></label></div><p class="login-note">Editor: ve y edita todas las actividades. Visualizador: solo consulta la información. Solo el administrador gestiona accesos. Contraseña compartida de prueba: Demo2026.</p><div class="modal-foot"><button class="btn" onclick="closeModal()">Cerrar</button><button class="btn primary" onclick="saveUser()">Guardar usuario de prueba</button></div>')}
@@ -998,6 +999,42 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   var previousExport=exportExcel;
   exportExcel=function(){if(!isTI())return previousExport();var rows=[['Tipo de registro','Clasificación','Referencia','Control / punto identificado','Subactividades / plan de trabajo','Responsable','Fecha compromiso','Estado','Avance %','Observaciones']].concat(getFiltered().map(function(pair){var t=pair.t;return[t.tiType||'',t.tiNature||'',t.tiReference||'',t.actividad||'',(t.subactivities||[]).map(function(sub){return sub.name+' ('+subProgressTi(sub)+'%)'}).join(' | '),t.tiOwner||t.resp||'',deadline(t),status(t),pct(t),observationTi(t)]}));var csv='\ufeff'+rows.map(function(row){return row.map(function(value){return'"'+String(value??'').replace(/"/g,'""')+'"'}).join(';')}).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'seguimiento_ti_control_interno.csv');log('Seguimiento TI Control Interno exportado','Registros exportados');toast('Archivo compatible con Excel descargado')};
   var style=document.createElement('style');style.textContent='.ti-owner-field{min-width:0}.ti-owner-field .owner-dropdown{display:block}.ti-owner-field .owner-dropdown>summary{width:100%}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  var previousPull=window.pullCloud;
+  window.pullCloud=async function(confirmed){
+    var result=await previousPull(confirmed);
+    if(state&&state.accounts&&typeof state.accounts==='object'){
+      demoAccounts=clone(state.accounts);
+      localStorage.setItem(STORE+'_accounts',JSON.stringify(demoAccounts));
+    }
+    return result;
+  };
+  var previousPush=window.pushCloud;
+  window.pushCloud=async function(){
+    if(state&&typeof demoAccounts!=='undefined')state.accounts=clone(demoAccounts);
+    return previousPush.apply(this,arguments);
+  };
+  var previousSaveChangedPassword=window.saveChangedPassword;
+  window.saveChangedPassword=function(index){
+    var result=previousSaveChangedPassword.apply(this,arguments);
+    if(typeof markDirty==='function')markDirty();
+    return result;
+  };
+  var previousLogin=window.login;
+  window.login=async function(event){
+    event.preventDefault();
+    try{
+      var remote=await cloudRequest('GET');
+      if(remote&&remote.accounts&&typeof remote.accounts==='object'){
+        demoAccounts=clone(remote.accounts);
+        localStorage.setItem(STORE+'_accounts',JSON.stringify(demoAccounts));
+      }
+    }catch(error){}
+    return previousLogin(event);
+  };
 })();
 </script>
 </body>
