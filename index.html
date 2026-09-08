@@ -1037,5 +1037,389 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   };
 })();
 </script>
+<script>
+(function(){
+  function displayTiType(value){return value==='Control SOX por implementar'?'Control SOX en implementación':value==='Punto identificado por EY TI'?'Punto identificado por EY TI':value||'—'}
+  var previousOpen=window.openTask;
+  window.openTask=function(index){
+    var result=previousOpen.apply(this,arguments);
+    if(activeTab==='ci-ti')Array.from(document.querySelectorAll('#tiType option')).forEach(function(option){option.textContent=displayTiType(option.value)});
+    return result;
+  };
+  var previousRows=window.renderRows;
+  window.renderRows=function(items){
+    if(activeTab!=='ci-ti')return previousRows(items);
+    var table=document.querySelector('.table-card table');if(table)table.classList.add('ti-table');
+    var result=previousRows(items);
+    Array.from(document.querySelectorAll('.table-card tbody tr:not(.ti-section-row) .front-tag')).forEach(function(tag){tag.classList.remove('front-tag');tag.classList.add('ti-type-text');tag.removeAttribute('style');tag.textContent=displayTiType(tag.textContent.trim())});
+    return result;
+  };
+  var style=document.createElement('style');style.textContent='.table-card table.ti-table{min-width:1740px}.table-card table.ti-table>thead>tr>th:first-child,.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:first-child{width:220px;min-width:220px}.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:first-child .ti-type-text{display:block;width:100%;font-weight:750;line-height:1.35;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:first-child{vertical-align:middle}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  var TYPES=['Control por implementar','Punto identificado por el auditor externo','Punto identificado por Auditoría Corporativa','General'];
+  var NATURES=['Automático','Manual'];
+  var STANDARD_SUBS=['Entendimiento del control','Diseño del control','Revisión del control','Publicación en Workiva y envío de acta'];
+  var GROUPS=[
+    ['Control por implementar','Controles por implementar'],
+    ['Punto identificado por el auditor externo','Puntos identificados por el auditor externo'],
+    ['Punto identificado por Auditoría Corporativa','Puntos identificados por Auditoría Corporativa'],
+    ['General','Registros generales']
+  ];
+  function isTI(){return activeTab==='ci-ti'}
+  function escTi(value){return esc(value==null?'':String(value))}
+  function canonicalType(task){
+    var raw=String(task&&task.tiType||'');
+    if(raw==='Control SOX por implementar'||raw==='Implementación de control'||raw==='Control por implementar')return'Control por implementar';
+    if(raw==='Punto identificado por EY TI'||raw==='Punto identificado por el auditor externo'||raw==='Punto identificado por auditor externo')return'Punto identificado por el auditor externo';
+    if(raw==='Punto identificado por Auditoría Corporativa'||raw==='Punto identificado por Auditoria Corporativa')return'Punto identificado por Auditoría Corporativa';
+    if(raw==='Tarea / acción de remediación'||raw==='Reunión / seguimiento'||raw==='Registro general'||raw==='General')return'General';
+    return raw||'General';
+  }
+  function typeNature(task){var raw=String(task&&task.tiNature||'');return raw==='Manual'?'Manual':'Automático'}
+  function typeReferenceLabel(type){return type==='Control por implementar'?'Referencia del control':type==='Punto identificado por el auditor externo'?'Referencia del auditor externo':type==='Punto identificado por Auditoría Corporativa'?'Referencia de Auditoría Corporativa':'Referencia'}
+  function typeDetailLabel(type){return type==='Control por implementar'?'Descripción del control':type==='Punto identificado por el auditor externo'?'Descripción del punto identificado por el auditor externo':type==='Punto identificado por Auditoría Corporativa'?'Descripción del punto identificado por Auditoría Corporativa':'Actividad'}
+  function optionListTi(values,selected){return values.map(function(value){return'<option value="'+escTi(value)+'" '+(value===selected?'selected':'')+'>'+escTi(value)+'</option>'}).join('')}
+  function subProgressTi(sub){var value=Number(sub&&sub.avance)||0;return Math.round(value<=1&&value>0?value*100:value)}
+  function taskSubactivitiesTi(task,type){if(Array.isArray(task.subactivities)&&task.subactivities.length)return task.subactivities;return type==='Control por implementar'?STANDARD_SUBS.map(function(name){return{name:name,avance:0,status:'Pendiente',nota:''}}):[]}
+  function observationTi(task){return task&&task.observacion||task&&task.nota||''}
+  function nextStepsTi(task){return task&&task.proximosPasos||''}
+  function pointPlanTi(task){return(Array.isArray(task&&task.subactivities)?task.subactivities:[]).map(function(sub){return sub.name||''}).filter(Boolean).join('\n')}
+  function ownersTi(task){return[task&&task.tiOwner,task&&task.respPrimera,task&&task.respSegunda,task&&task.resp].filter(Boolean).join(' / ')}
+  function firstOwnerTi(task){return canonicalType(task)==='General'?(task.respPrimera||''):(task.tiOwner||task.resp||'')}
+  function secondOwnerTi(task){return canonicalType(task)==='General'?(task.respSegunda||''):''}
+  function controlRowsTi(){return Array.from(document.querySelectorAll('#tiSubactivityRows .ti-subactivity-editor-row')).map(function(row){var name=row.querySelector('.ti-subactivity-name'),progress=row.querySelector('.ti-subactivity-progress');return{name:name?name.value.trim():'',avance:Math.max(0,Math.min(100,Number(progress&&progress.value)||0))}})}
+  function controlAverageTi(rows){var valid=rows.filter(function(row){return row.name});return valid.length?Math.round(valid.reduce(function(sum,row){return sum+Number(row.avance||0)},0)/valid.length):0}
+  function renderControlRowsTi(rows){
+    var editor=document.getElementById('tiSubactivityRows');if(!editor)return;
+    var list=rows.length?rows:STANDARD_SUBS.map(function(name){return{name:name,avance:0,status:'Pendiente'}});
+    editor.innerHTML=list.map(function(row,index){var progress=subProgressTi(row);return'<div class="ti-subactivity-editor-row"><span class="ti-plan-number">'+(index+1)+'</span><input class="control ti-subactivity-name" value="'+escTi(row.name||'')+'" placeholder="Nombre de la subactividad"><label class="ti-subactivity-progress-field"><span>% avance</span><input type="number" min="0" max="100" class="control ti-subactivity-progress" value="'+progress+'" oninput="tiUpdateControlAverage()"></label><button type="button" class="icon-btn ti-plan-remove" onclick="tiRemoveControlSubactivity(this)" '+(list.length<=4?'disabled':'')+'>Quitar</button></div>'}).join('');
+    tiUpdateControlAverage();
+  }
+  function updateTypeTi(){
+    var type=document.getElementById('tiType'),natureWrap=document.getElementById('tiNatureWrap'),referenceWrap=document.getElementById('tiReferenceWrap'),detailLabel=document.getElementById('tiDetailLabel'),controlPlan=document.getElementById('tiControlPlan'),pointPlan=document.getElementById('tiPointPlan'),generalFields=document.getElementById('tiGeneralFields'),specificOwner=document.getElementById('tiSpecificOwner'),generalOwners=document.getElementById('tiGeneralOwners'),specificDate=document.getElementById('tiSpecificDate'),generalDates=document.getElementById('tiGeneralDates'),pctWrap=document.getElementById('tiPctWrap'),referenceLabel=document.getElementById('tiReferenceLabel');if(!type)return;
+    var value=type.value,control=value==='Control por implementar',general=value==='General',point=!control&&!general;
+    if(natureWrap)natureWrap.style.display=control?'':'none';
+    if(referenceWrap)referenceWrap.style.display=general?'none':'';
+    if(referenceLabel)referenceLabel.textContent=typeReferenceLabel(value);
+    if(detailLabel)detailLabel.textContent=typeDetailLabel(value);
+    if(controlPlan)controlPlan.style.display=control?'':'none';
+    if(pointPlan)pointPlan.style.display=point?'':'none';
+    if(generalFields)generalFields.style.display=general?'':'none';
+    if(specificOwner)specificOwner.style.display=general?'none':'';
+    if(generalOwners)generalOwners.style.display=general?'':'none';
+    if(specificDate)specificDate.style.display=general?'none':'';
+    if(generalDates)generalDates.style.display=general?'':'none';
+    if(pctWrap)pctWrap.style.display=control?'none':'';
+    if(control&&document.querySelectorAll('#tiSubactivityRows .ti-subactivity-editor-row').length===0)renderControlRowsTi(STANDARD_SUBS.map(function(name){return{name:name,avance:0}}));
+  }
+  window.tiStructuredTypeChanged=updateTypeTi;
+  window.tiUpdateControlAverage=function(){var rows=controlRowsTi(),average=controlAverageTi(rows),summary=document.getElementById('tiCalculatedProgress');if(summary)summary.innerHTML='Avance del control: <b>'+average+'%</b> · promedio de '+rows.filter(function(row){return row.name}).length+' subactividades';};
+  window.tiAddControlSubactivity=function(){var rows=controlRowsTi();rows.push({name:'',avance:0});renderControlRowsTi(rows)};
+  window.tiRemoveControlSubactivity=function(button){var row=button&&button.closest('.ti-subactivity-editor-row');if(!row)return;var rows=controlRowsTi();if(rows.length<=4)return;var index=Array.prototype.indexOf.call(row.parentNode.children,row);rows.splice(index,1);renderControlRowsTi(rows)};
+  var previousOpen=window.openTask;
+  window.openTask=function(index){
+    if(!isTI())return previousOpen.apply(this,arguments);
+    editingIndex=Number.isInteger(index)?index:null;var old=editingIndex===null?{}:current().tasks[index];if(editingIndex!==null&&!canEdit(old))return;
+    var type=canonicalType(old),nature=typeNature(old),owner=old.tiOwner||old.resp||'',first=old.respPrimera||'',second=old.respSegunda||'',specificDate=dateForInput(deadline(old)),pointText=pointPlanTi(old),subs=taskSubactivitiesTi(old,type),generalDue=dateForInput(old.dueDate||''),generalFin=dateForInput(old.fin||'');
+    showModal('<h2>'+(editingIndex===null?'Nuevo registro':'Editar registro')+'</h2><p>Selecciona qué deseas registrar. Los campos se ajustarán automáticamente según la opción elegida.</p><div class="grid2"><label><span class="label">TIPO DE REGISTRO</span><select id="tiType" class="control" onchange="tiStructuredTypeChanged()">'+optionListTi(TYPES,type)+'</select></label><label id="tiNatureWrap"><span class="label">TIPO DE CONTROL</span><select id="tiNature" class="control">'+optionListTi(NATURES,nature)+'</select></label><label id="tiReferenceWrap" class="full"><span class="label" id="tiReferenceLabel">'+typeReferenceLabel(type)+'</span><input id="tiReference" class="control" value="'+escTi(old.tiReference||'')+'" placeholder="Ej. EY.5, ITGC-01 o referencia del punto"></label><label class="full"><span class="label" id="tiDetailLabel">'+typeDetailLabel(type)+'</span><textarea id="tiDetail" class="control" rows="3">'+escTi(old.actividad||'')+'</textarea></label><div id="tiControlPlan" class="full"><span class="label">SUBACTIVIDADES DE IMPLEMENTACIÓN</span><div class="ti-subactivity-editor-head"><span></span><span>Actividad</span><span>% de avance</span><span></span></div><div id="tiSubactivityRows"></div><button type="button" class="btn" style="margin-top:8px" onclick="tiAddControlSubactivity()">+ Agregar subactividad</button><div id="tiCalculatedProgress" class="ti-calculated-progress"></div><span class="login-note">Las cuatro actividades base son obligatorias. El avance del control se calcula con el promedio de sus porcentajes.</span></div><label id="tiPointPlan" class="full" style="display:none"><span class="label">PLAN DE ACCIÓN · UNA ACCIÓN POR LÍNEA</span><textarea id="tiPointPlanText" class="control" rows="5" placeholder="Describe las acciones para atender el punto">'+escTi(pointText)+'</textarea></label><div id="tiGeneralFields" class="full" style="display:none"><div class="grid2"><label><span class="label">FRENTE</span><input id="tiFront" class="control" value="'+escTi(old.frente||'')+'" placeholder="Ej. SAP, aplicaciones, procesos o proyecto"></label><div></div></div></div><div id="tiSpecificOwner"><input id="tiOwner" type="hidden" value="'+escTi(owner)+'">'+ownerPicker('ti','RESPONSABLE',owner)+'</div><div id="tiGeneralOwners" class="full" style="display:none"><div class="grid2"><div>'+ownerPicker('generalFirst','Responsable primera línea',first)+'</div><div>'+ownerPicker('generalSecond','Responsable segunda línea',second)+'</div></div></div><div id="tiSpecificDate"><label><span class="label">DUE DATE / FECHA COMPROMISO</span><input id="tiDate" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" class="control" value="'+escTi(specificDate)+'"></label></div><div id="tiGeneralDates" class="full" style="display:none"><div class="grid2"><label><span class="label">DUE DATE</span><input id="tiDueDate" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" class="control" value="'+escTi(generalDue)+'"></label><label><span class="label">FECHA FIN</span><input id="tiFin" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" class="control" value="'+escTi(generalFin)+'"></label></div></div><label id="tiPctWrap"><span class="label">AVANCE %</span><input id="tiPct" type="number" min="0" max="100" class="control" value="'+pct(old)+'"></label><label><span class="label">ESTADO</span><select id="tiStatus" class="control">'+['Pendiente','On Track','Concern','Completada'].map(function(value){return'<option '+(old.status===value?'selected':'')+'>'+value+'</option>'}).join('')+'</select></label><label class="full"><span class="label">OBSERVACIONES</span><textarea id="tiObservation" class="control" rows="3" placeholder="Registra observaciones, decisiones o bloqueos">'+escTi(observationTi(old))+'</textarea></label><label class="full"><span class="label">PRÓXIMOS PASOS</span><textarea id="tiNextSteps" class="control" rows="3" placeholder="Registra las acciones o seguimientos pendientes">'+escTi(nextStepsTi(old))+'</textarea></label></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="saveTask()">Guardar registro</button></div>');
+    renderControlRowsTi(subs);updateTypeTi();
+  };
+  var previousSave=window.saveTask;
+  window.saveTask=function(){
+    if(!isTI())return previousSave.apply(this,arguments);
+    if(!session||(editingIndex===null?session.role!=='Administrador':!canEdit(current().tasks[editingIndex])))return;
+    var old=editingIndex===null?{}:current().tasks[editingIndex],type=val('tiType'),nature=type==='Control por implementar'?val('tiNature'):'',reference=val('tiReference'),detail=val('tiDetail'),observation=val('tiObservation'),nextSteps=val('tiNextSteps'),previous=Array.isArray(old.subactivities)?old.subactivities:[],owner='',first='',second='',front='',dueDate='',fin='',subs=[],advance=0;
+    if(type==='Control por implementar'){
+      owner=selectedOwners('ti')||val('tiOwner');dueDate=parseDateInput(val('tiDate'));var controlRows=controlRowsTi().filter(function(row){return row.name});if(controlRows.length<4){toast('Cada control debe tener las cuatro subactividades de implementación');return}subs=controlRows.map(function(row){var prior=previous.find(function(sub){return sub.name===row.name}),progress=Math.max(0,Math.min(100,Number(row.avance)||0));return{name:row.name,avance:progress,status:progress===100?'Completada':progress>0?'On Track':'Pendiente',nota:prior&&prior.nota||''}});advance=controlAverageTi(controlRows)/100;
+    }else if(type==='Punto identificado por el auditor externo'||type==='Punto identificado por Auditoría Corporativa'){
+      owner=selectedOwners('ti')||val('tiOwner');dueDate=parseDateInput(val('tiDate'));var pointNames=val('tiPointPlanText').split('\n').map(function(value){return value.trim()}).filter(Boolean);subs=pointNames.map(function(name){var prior=previous.find(function(sub){return sub.name===name});return prior?Object.assign({},prior,{name:name}):{name:name,avance:0,status:'Pendiente',nota:''}});advance=Math.max(0,Math.min(100,Number(val('tiPct'))||0))/100;
+    }else{
+      front=val('tiFront')||'General';first=selectedOwners('generalFirst');second=selectedOwners('generalSecond');dueDate=parseDateInput(val('tiDueDate'));fin=parseDateInput(val('tiFin'));advance=Math.max(0,Math.min(100,Number(val('tiPct'))||0))/100;
+    }
+    if(type==='General'){if(!front||!detail){toast('Completa el frente y la actividad');return}}else{if(!detail){toast('La descripción es obligatoria');return}if(!reference){toast('La referencia es obligatoria');return}}
+    var combinedNote=[observation,nextSteps].filter(Boolean).join(' · '),item=Object.assign({},old,{tiType:type,tiNature:nature,tiReference:reference,tiOwner:owner,frente:type==='General'?front:type,actividad:detail,resp:type==='General'?[first,second].filter(Boolean).join(' / '):owner,respPrimera:type==='General'?first:'',respSegunda:type==='General'?second:'',fin:fin,dueDate:dueDate,avance:advance,status:val('tiStatus'),observacion:observation,proximosPasos:nextSteps,nota:combinedNote,subactivities:subs});
+    state.respList=[...new Set([...(state.respList||[]),...([owner,first,second].join(' / ').split('/').map(function(value){return value.trim()}).filter(Boolean))])];
+    if(editingIndex===null){current().tasks.push(item);log('Registro TI creado',type+' · '+(reference||front)+' · '+detail)}else{current().tasks[editingIndex]=item;log('Registro TI actualizado',type+' · '+(reference||front)+' · '+detail)}persist();closeModal();render();toast('Registro guardado');
+  };
+  function planHtmlTi(task){var list=task.subactivities||[];if(!list.length)return'<span class="ti-no-plan">—</span>';return'<div class="ti-subactivity-list">'+list.map(function(sub,index){return'<div class="ti-subactivity"><span class="ti-subactivity-number">'+(index+1)+'</span><span>'+escTi(sub.name)+'</span><b class="ti-subactivity-percent">'+subProgressTi(sub)+'%</b></div>'}).join('')+'</div>'}
+  var previousRows=window.renderRows;
+  window.renderRows=function(items){
+    var table=document.querySelector('.table-card table');
+    if(!isTI()){if(table)table.classList.remove('ti-table');return previousRows(items)}
+    if(table)table.classList.add('ti-table');
+    var tbody=document.getElementById('rows');if(!items.length){document.querySelector('.table-card thead tr').innerHTML='<th>Clasificación</th><th>Referencia</th><th>Frente</th><th>Actividad / punto identificado</th><th>Subactividades / plan de trabajo</th><th>Responsable primera línea</th><th>Responsable segunda línea</th><th>Due Date</th><th>Fecha fin</th><th>Estado</th><th>Avance</th><th>Observaciones</th><th>Próximos pasos</th><th>Acciones</th>';tbody.innerHTML='<tr><td colspan="14" class="empty">No se encontraron registros con estos filtros.</td></tr>';return}
+    document.querySelector('.table-card thead tr').innerHTML='<th>Clasificación</th><th>Referencia</th><th>Frente</th><th>Actividad / punto identificado</th><th>Subactividades / plan de trabajo</th><th>Responsable primera línea</th><th>Responsable segunda línea</th><th>Due Date</th><th>Fecha fin</th><th>Estado</th><th>Avance</th><th>Observaciones</th><th>Próximos pasos</th><th>Acciones</th>';
+    var out=[];GROUPS.forEach(function(group){var rows=items.filter(function(pair){return canonicalType(pair.t)===group[0]});if(!rows.length)return;out.push('<tr class="ti-section-row"><td colspan="14">'+group[1]+' · '+rows.length+' registros</td></tr>');rows.forEach(function(pair){var t=pair.t,i=pair.i,type=canonicalType(t),s=status(t),m=statusMeta(s),first=firstOwnerTi(t),second=secondOwnerTi(t),front=type==='General'?(t.frente||'General'):'—',classification=type==='Control por implementar'?typeNature(t):'—',due=type==='General'?t.dueDate:deadline(t),end=type==='General'?t.fin:'';out.push('<tr id="task-row-'+i+'"><td class="ti-classification-cell">'+escTi(classification)+'</td><td><b>'+escTi(t.tiReference||'—')+'</b></td><td>'+escTi(front)+'</td><td><button class="task-title task-link" onclick="openTask('+i+')">'+escTi(t.actividad)+'</button></td><td>'+planHtmlTi(t)+'</td><td>'+escTi(first||'Por asignar')+'</td><td>'+escTi(second||'—')+'</td><td>'+fmtDate(due)+'</td><td>'+fmtDate(end)+'</td><td><span class="status '+m[0]+'">'+escTi(m[1])+'</span></td><td><div class="mini-progress" style="--progress-color:'+progressColor(t)+'" title="'+escTi(progressLabel(t))+'"><div class="track"><div class="fill" style="width:'+pct(t)+'%"></div></div><b>'+pct(t)+'%</b><small class="ti-average-note">'+(type==='Control por implementar'?'Promedio':'')+'</small></div></td><td class="observations-cell">'+escTi(observationTi(t)||'—')+'</td><td class="observations-cell">'+escTi(nextStepsTi(t)||'—')+'</td><td><div class="row-actions">'+(session.role==='Administrador'?'<button class="icon-btn" onclick="removeTask('+i+')">Eliminar</button>':'')+'</div></td></tr>')})});tbody.innerHTML=out.join('');
+  };
+  var previousFilter=window.getFiltered;
+  window.getFiltered=function(){
+    if(!isTI())return previousFilter.apply(this,arguments);
+    var tab=current(),search=(document.getElementById('search').value||'').trim().toLowerCase(),sf=document.getElementById('statusFilter').value,of=document.getElementById('ownerFilter').value,ff=document.getElementById('frontFilter').value;
+    return tab.tasks.map(function(task,index){return{t:task,i:index}}).filter(function(pair){var t=pair.t,text=[GROUPS.find(function(group){return group[0]===canonicalType(t)})?.[1]||canonicalType(t),t.tiNature,t.tiReference,t.frente,t.actividad,ownersTi(t),observationTi(t),nextStepsTi(t),(t.subactivities||[]).map(function(sub){return sub.name}).join(' ')].join(' ').toLowerCase(),category=canonicalType(t);return(!search||text.includes(search))&&(!sf||status(t)===sf)&&(!of||ownersTi(t).includes(of))&&(!ff||(ff===category||t.frente===ff))});
+  };
+  var previousOptions=window.setOptions;
+  window.setOptions=function(){
+    if(!isTI())return previousOptions.apply(this,arguments);
+    var tasks=current().tasks||[],owners=[...new Set(tasks.flatMap(function(task){return ownersTi(task).split('/').map(function(value){return value.trim()}).filter(Boolean)}).concat(state.respList||[]))].sort(),fronts=[...new Set(tasks.filter(function(task){return canonicalType(task)==='General'}).map(function(task){return task.frente}).filter(Boolean))].sort(),s=document.getElementById('statusFilter'),o=document.getElementById('ownerFilter'),f=document.getElementById('frontFilter'),sv=s.value,ov=o.value,fv=f.value;s.innerHTML='<option value="">Todos los estados</option>'+['Completada','On Track','Concern','Pendiente','Por vencer','Atrasada'].map(function(value){return'<option>'+value+'</option>'}).join('');o.innerHTML='<option value="">Todos los responsables</option>'+owners.map(function(value){return'<option>'+escTi(value)+'</option>'}).join('');f.innerHTML='<option value="">Todos los grupos / frentes</option>'+GROUPS.map(function(group){return'<option value="'+escTi(group[0])+'">'+escTi(group[1])+'</option>'}).join('')+fronts.map(function(value){return'<option value="'+escTi(value)+'">Frente: '+escTi(value)+'</option>'}).join('');s.value=sv;o.value=ov;f.value=fv;
+  };
+  var previousRender=window.render;
+  window.render=function(){var result=previousRender.apply(this,arguments);if(!isTI())return result;var tasks=current().tasks||[],counts={};GROUPS.forEach(function(group){counts[group[0]]=tasks.filter(function(task){return canonicalType(task)===group[0]}).length});var sub=document.getElementById('pageSub');if(sub)sub.textContent=counts['Control por implementar']+' controles por implementar · '+counts['Punto identificado por el auditor externo']+' puntos del auditor externo · '+counts['Punto identificado por Auditoría Corporativa']+' puntos de Auditoría Corporativa · '+counts.General+' registros generales';var overview=document.getElementById('tiOverview');if(overview)overview.innerHTML='<div class="ti-overview-title"><div><b>Plan de implementación y seguimiento</b><span>Controles, puntos de auditoría y registros generales</span></div></div><div class="ti-overview-grid"><div><strong>'+counts['Control por implementar']+'</strong><span>Controles por implementar</span></div><div><strong>'+counts['Punto identificado por el auditor externo']+'</strong><span>Puntos auditor externo</span></div><div><strong>'+counts['Punto identificado por Auditoría Corporativa']+'</strong><span>Puntos Auditoría Corporativa</span></div><div><strong>'+counts.General+'</strong><span>Registros generales</span></div></div>';return result};
+  var previousExport=window.exportExcel;
+  window.exportExcel=function(){if(!isTI())return previousExport.apply(this,arguments);var rows=[['Clasificación','Referencia','Frente','Actividad / punto identificado','Subactividades / plan de trabajo','Responsable primera línea','Responsable segunda línea','Due Date','Fecha fin','Estado','Avance %','Observaciones','Próximos pasos']].concat(getFiltered().map(function(pair){var t=pair.t,type=canonicalType(t);return[type==='Control por implementar'?typeNature(t):'',t.tiReference||'',type==='General'?(t.frente||'General'):'',t.actividad||'',(t.subactivities||[]).map(function(sub){return sub.name+' ('+subProgressTi(sub)+'%)'}).join(' | '),firstOwnerTi(t),secondOwnerTi(t),type==='General'?t.dueDate:deadline(t),type==='General'?t.fin:'',status(t),pct(t),observationTi(t),nextStepsTi(t)]}));var csv='\ufeff'+rows.map(function(row){return row.map(function(value){return'"'+String(value??'').replace(/"/g,'""')+'"'}).join(';')}).join('\r\n');download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'seguimiento_ti_control_interno.csv');log('Seguimiento TI Control Interno exportado','Registros exportados');toast('Archivo compatible con Excel descargado')};
+  var style=document.createElement('style');style.textContent='.table-card table.ti-table{min-width:1900px}.table-card table.ti-table>thead>tr>th:first-child,.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:first-child{width:auto;min-width:150px}.table-card table.ti-table>thead>tr>th:nth-child(2),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(2){min-width:145px}.table-card table.ti-table>thead>tr>th:nth-child(3),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(3){min-width:170px}.table-card table.ti-table>thead>tr>th:nth-child(4),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(4){min-width:300px}.table-card table.ti-table>thead>tr>th:nth-child(5),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(5){min-width:300px}.table-card table.ti-table>thead>tr>th:nth-child(12),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(12),.table-card table.ti-table>thead>tr>th:nth-child(13),.table-card table.ti-table>tbody>tr:not(.ti-section-row)>td:nth-child(13){min-width:250px}.ti-general-fields{grid-column:1/-1}.ti-general-fields .grid2{margin:0}.ti-subactivity-editor-head{display:grid;grid-template-columns:24px minmax(160px,1fr) 115px 55px;gap:7px;align-items:end;margin:8px 0 5px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}.ti-subactivity-editor-row{display:grid;grid-template-columns:24px minmax(160px,1fr) 115px auto;gap:7px;align-items:center;margin-bottom:7px}.ti-subactivity-progress-field span{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}.ti-subactivity-progress-field .control{padding:9px 8px}.ti-calculated-progress{margin-top:10px;padding:10px 12px;border:1px solid #b8dbf3;background:#edf6fd;color:#1467a5;border-radius:8px;font-size:13px}.ti-subactivity-percent{color:var(--blue);font-size:11px;white-space:nowrap}.ti-average-note{color:var(--muted);font-size:10px;margin-left:4px}@media(max-width:620px){.ti-subactivity-editor-head{display:none}.ti-subactivity-editor-row{grid-template-columns:22px minmax(0,1fr) 78px auto}}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  var POINT_TYPES=['Punto identificado por el auditor externo','Punto identificado por Auditoría Corporativa'];
+  function isTI(){return activeTab==='ci-ti'}
+  function isPointType(value){
+    var raw=typeof value==='object'?(value&&value.tiType):value;
+    raw=String(raw||'');
+    return POINT_TYPES.indexOf(raw)>=0||raw==='Punto identificado por EY TI'||raw==='Punto identificado por auditor externo';
+  }
+  function escPoint(value){return esc(value==null?'':String(value))}
+  function pointProgress(row){var value=Number(row&&row.avance)||0;return Math.round(value<=1&&value>0?value*100:value)}
+  function pointAverage(rows){
+    var valid=rows.filter(function(row){return row.name});
+    return valid.length?Math.round(valid.reduce(function(sum,row){return sum+Math.max(0,Math.min(100,Number(row.avance)||0))},0)/valid.length):0;
+  }
+  function pointRows(){
+    return Array.from(document.querySelectorAll('#tiPointActivityRows .ti-point-activity-row')).map(function(row){
+      var name=row.querySelector('.ti-point-activity-name'),progress=row.querySelector('.ti-point-activity-progress');
+      return{name:name?name.value.trim():'',avance:Math.max(0,Math.min(100,Number(progress&&progress.value)||0))};
+    });
+  }
+  function renderPointRows(rows){
+    var editor=document.getElementById('tiPointActivityRows');if(!editor)return;
+    var list=Array.isArray(rows)?rows:[];
+    editor.innerHTML=list.length?list.map(function(row,index){
+      var progress=pointProgress(row);
+      return'<div class="ti-point-activity-row"><span class="ti-plan-number">'+(index+1)+'</span><input class="control ti-point-activity-name" value="'+escPoint(row.name||'')+'" placeholder="Actividad o acción de remediación" oninput="tiUpdatePointAverage()"><label class="ti-subactivity-progress-field"><span>% avance</span><input type="number" min="0" max="100" class="control ti-point-activity-progress" value="'+progress+'" oninput="tiUpdatePointAverage()"></label><button type="button" class="icon-btn ti-plan-remove" onclick="tiRemovePointActivity(this)">Quitar</button></div>';
+    }).join(''):'<div class="ti-point-empty">Aún no hay actividades. Agrega la primera actividad del plan de remediación.</div>';
+    tiUpdatePointAverage();
+  }
+  function pointEditorMarkup(){
+    return'<span class="label">ACTIVIDADES DEL PUNTO / PLAN DE REMEDIACIÓN</span><p class="ti-point-help">Registra cada acción como una fila independiente. El avance del punto se calculará automáticamente con el promedio de los porcentajes.</p><div class="ti-point-activity-head"><span></span><span>Actividad o acción</span><span>% de avance</span><span></span></div><div id="tiPointActivityRows"></div><button type="button" class="btn ti-add-point" onclick="tiAddPointActivity()">+ Agregar actividad</button><div id="tiPointCalculatedProgress" class="ti-point-calculated-progress"></div>';
+  }
+  function ensurePointEditor(rows){
+    var plan=document.getElementById('tiPointPlan');if(!plan)return;
+    plan.classList.add('ti-form-section','ti-point-section');
+    if(!document.getElementById('tiPointActivityRows')){
+      plan.innerHTML=pointEditorMarkup();
+      renderPointRows(Array.isArray(rows)?rows:[]);
+    }
+  }
+  window.tiUpdatePointAverage=function(){
+    var rows=pointRows(),average=pointAverage(rows),summary=document.getElementById('tiPointCalculatedProgress');
+    if(summary)summary.innerHTML='Avance del punto: <b>'+average+'%</b> · promedio de '+rows.filter(function(row){return row.name}).length+' actividades';
+  };
+  window.tiAddPointActivity=function(){
+    var rows=pointRows();rows.push({name:'',avance:0});renderPointRows(rows);
+    var inputs=document.querySelectorAll('#tiPointActivityRows .ti-point-activity-name');if(inputs.length)inputs[inputs.length-1].focus();
+  };
+  window.tiRemovePointActivity=function(button){
+    var row=button&&button.closest('.ti-point-activity-row');if(!row)return;
+    var rows=pointRows(),index=Array.prototype.indexOf.call(row.parentNode.children,row);if(index>=0)rows.splice(index,1);renderPointRows(rows);
+  };
+  var previousType=window.tiStructuredTypeChanged;
+  window.tiStructuredTypeChanged=function(){
+    if(typeof previousType==='function')previousType.apply(this,arguments);
+    var type=document.getElementById('tiType');
+    if(type&&isPointType(type.value)){
+      ensurePointEditor();
+      var pctWrap=document.getElementById('tiPctWrap');if(pctWrap)pctWrap.style.display='none';
+    }
+  };
+  function decorateModal(){
+    var modal=document.querySelector('.modal');if(!modal)return;
+    var heading=modal.querySelector('h2');
+    if(heading&&!heading.parentNode.classList.contains('ti-modal-header')){
+      var intro=heading.nextElementSibling,headingText=heading.textContent||'Registro de seguimiento';
+      var header=document.createElement('div');header.className='ti-modal-header';
+      header.innerHTML='<span class="ti-modal-kicker">SEGUIMIENTO IT CONTROL INTERNO</span><h2>'+escPoint(headingText)+'</h2><p>Organiza el punto en actividades medibles y mantén visible su avance.</p>';
+      modal.insertBefore(header,heading);heading.parentNode.removeChild(heading);
+      if(intro&&intro.tagName==='P'&&intro.parentNode===modal)intro.parentNode.removeChild(intro);
+    }
+    ['tiControlPlan','tiPointPlan','tiGeneralFields'].forEach(function(id){var section=document.getElementById(id);if(section)section.classList.add('ti-form-section')});
+  }
+  var previousOpen=window.openTask;
+  window.openTask=function(index){
+    if(!isTI())return previousOpen.apply(this,arguments);
+    var old=Number.isInteger(index)?current().tasks[index]:{};
+    var result=previousOpen.apply(this,arguments);
+    var type=document.getElementById('tiType');
+    if(type&&isPointType(type.value))ensurePointEditor(Array.isArray(old.subactivities)?old.subactivities:[]);
+    decorateModal();
+    return result;
+  };
+  var previousSave=window.saveTask;
+  window.saveTask=function(){
+    if(!isTI())return previousSave.apply(this,arguments);
+    var type=val('tiType');
+    if(!isPointType(type))return previousSave.apply(this,arguments);
+    if(!session||(editingIndex===null?session.role!=='Administrador':!canEdit(current().tasks[editingIndex])))return;
+    var old=editingIndex===null?{}:current().tasks[editingIndex],reference=val('tiReference'),detail=val('tiDetail'),owner=selectedOwners('ti')||val('tiOwner'),date=parseDateInput(val('tiDate')),observation=val('tiObservation'),nextSteps=val('tiNextSteps'),previous=Array.isArray(old.subactivities)?old.subactivities:[],rows=pointRows().filter(function(row){return row.name});
+    if(!detail){toast('La descripción del punto es obligatoria');return}
+    if(!reference){toast('La referencia es obligatoria');return}
+    var subs=rows.map(function(row){
+      var prior=previous.find(function(sub){return sub.name===row.name}),progress=Math.max(0,Math.min(100,Number(row.avance)||0));
+      return{name:row.name,avance:progress,status:progress===100?'Completada':progress>0?'On Track':'Pendiente',nota:prior&&prior.nota||''};
+    });
+    var item=Object.assign({},old,{tiType:type,tiNature:'',tiReference:reference,tiOwner:owner,frente:type,actividad:detail,resp:owner,respPrimera:'',respSegunda:'',fin:'',dueDate:date,avance:pointAverage(rows)/100,status:val('tiStatus'),observacion:observation,proximosPasos:nextSteps,nota:[observation,nextSteps].filter(Boolean).join(' · '),subactivities:subs});
+    state.respList=[...new Set([...(state.respList||[]),...([owner].join(' / ').split('/').map(function(value){return value.trim()}).filter(Boolean))])];
+    if(editingIndex===null){current().tasks.push(item);log('Registro TI creado',type+' · '+reference+' · '+detail)}else{current().tasks[editingIndex]=item;log('Registro TI actualizado',type+' · '+reference+' · '+detail)}
+    persist();closeModal();render();toast('Registro guardado');
+  };
+  var style=document.createElement('style');style.textContent='.modal .ti-modal-header{margin:-24px -24px 18px;padding:17px 24px 16px;background:linear-gradient(135deg,#17345f 0%,#167fb8 100%);border-radius:15px 15px 10px 10px;color:#fff;box-shadow:0 5px 14px rgba(23,52,95,.14)}.modal .ti-modal-header h2{margin:3px 0 5px;color:#fff;font-size:20px}.modal .ti-modal-header p{margin:0;color:#e5f3fb;line-height:1.4}.ti-modal-kicker{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#bfe8f7}.modal .ti-form-section{padding:13px 14px;border:1px solid #d9e5f0;border-radius:11px;background:linear-gradient(180deg,#f8fbfe 0%,#fff 100%)}.modal .ti-point-section{border-color:#f0d49f;background:linear-gradient(180deg,#fffaf0 0%,#fff 100%)}.ti-point-help{margin:0 0 8px;color:var(--muted);font-size:12px;line-height:1.4}.ti-point-activity-head{display:grid;grid-template-columns:24px minmax(160px,1fr) 115px 55px;gap:7px;align-items:end;margin:8px 0 5px;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase}.ti-point-activity-row{display:grid;grid-template-columns:24px minmax(160px,1fr) 115px auto;gap:7px;align-items:center;margin-bottom:7px}.ti-point-activity-row .ti-subactivity-progress-field{margin:0}.ti-point-calculated-progress{margin-top:10px;padding:10px 12px;border:1px solid #f0ce85;background:#fff4d8;color:#8b5a00;border-radius:8px;font-size:13px}.ti-add-point{margin-top:5px;border-color:#e8c879;background:#fff;color:#8b5a00}.ti-point-empty{padding:10px 11px;border:1px dashed #e3c986;border-radius:8px;background:rgba(255,249,232,.75);color:#8b6b2a;font-size:12px}.ti-point-activity-progress{padding:9px 8px}.ti-point-activity-name{min-width:0}@media(max-width:620px){.modal .ti-modal-header{margin:-24px -24px 15px;padding:15px 18px}.ti-point-activity-head{display:none}.ti-point-activity-row{grid-template-columns:22px minmax(0,1fr) 78px auto}.ti-point-activity-row .ti-point-activity-name{grid-column:2/5}.ti-point-activity-row .ti-subactivity-progress-field{grid-column:2/3}.ti-point-activity-row .ti-plan-remove{grid-column:3/5;justify-self:start}}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  function isTI(){return activeTab==='ci-ti'}
+  function decorateMainView(){
+    if(!isTI())return;
+    var currentGroup='';
+    Array.from(document.querySelectorAll('.table-card tbody tr')).forEach(function(row){
+      if(row.classList.contains('ti-section-row')){
+        var text=(row.textContent||'').toLowerCase();
+        currentGroup=text.indexOf('control')>=0?'controls':text.indexOf('auditor externo')>=0?'externo':text.indexOf('auditoría corporativa')>=0?'corporativa':'general';
+        row.classList.add('ti-group-'+currentGroup);
+      }else if(currentGroup){
+        row.classList.add('ti-record-'+currentGroup);
+        var list=row.querySelector('.ti-subactivity-list');if(list)list.classList.add('ti-list-'+currentGroup);
+      }
+    });
+  }
+  var previousRows=window.renderRows;
+  window.renderRows=function(){var result=previousRows.apply(this,arguments);decorateMainView();return result};
+  var previousRender=window.render;
+  window.render=function(){var result=previousRender.apply(this,arguments);decorateMainView();return result};
+  var style=document.createElement('style');style.textContent='.table-card table.ti-table>thead>tr>th{background:#eaf4fb;color:#315c78;border-top:3px solid #2b83b7}.table-card table.ti-table>tbody>tr.ti-section-row td{padding:14px 16px;font-size:11px;letter-spacing:.06em}.table-card table.ti-table>tbody>tr.ti-group-controls td{background:#e8f4fb;color:#145f8b;border-top:2px solid #2b83b7;border-left:0}.table-card table.ti-table>tbody>tr.ti-group-controls td:first-child{border-left:5px solid #2b83b7}.table-card table.ti-table>tbody>tr.ti-group-externo td{background:#fff5df;color:#95600b;border-top:2px solid #e2a63b;border-left:0}.table-card table.ti-table>tbody>tr.ti-group-externo td:first-child{border-left:5px solid #e2a63b}.table-card table.ti-table>tbody>tr.ti-group-corporativa td{background:#f3edfb;color:#6d4a99;border-top:2px solid #9b72c7;border-left:0}.table-card table.ti-table>tbody>tr.ti-group-corporativa td:first-child{border-left:5px solid #9b72c7}.table-card table.ti-table>tbody>tr.ti-group-general td{background:#edf8f1;color:#267348;border-top:2px solid #54a979;border-left:0}.table-card table.ti-table>tbody>tr.ti-group-general td:first-child{border-left:5px solid #54a979}.table-card table.ti-table>tbody>tr.ti-record-controls:hover td{background:#f6fbfe}.table-card table.ti-table>tbody>tr.ti-record-externo:hover td{background:#fffaf0}.table-card table.ti-table>tbody>tr.ti-record-corporativa:hover td{background:#faf7fd}.table-card table.ti-table>tbody>tr.ti-record-general:hover td{background:#f7fcf8}.table-card table.ti-table .ti-subactivity-list{padding:3px;border-radius:8px}.table-card table.ti-table .ti-list-controls{background:#f1f9fe;border:1px solid #d9edf8}.table-card table.ti-table .ti-list-externo{background:#fff9ed;border:1px solid #f2dfb2}.table-card table.ti-table .ti-list-corporativa{background:#f8f3fc;border:1px solid #e6d9f2}.table-card table.ti-table .ti-list-general{background:#f3fbf5;border:1px solid #d8eedf}.table-card table.ti-table .ti-list-controls .ti-subactivity{background:#fff;border-color:#d9edf8;border-left:3px solid #2b83b7}.table-card table.ti-table .ti-list-externo .ti-subactivity{background:#fffdf8;border-color:#f2dfb2;border-left:3px solid #e2a63b}.table-card table.ti-table .ti-list-corporativa .ti-subactivity{background:#fff;border-color:#e6d9f2;border-left:3px solid #9b72c7}.table-card table.ti-table .ti-list-general .ti-subactivity{background:#fff;border-color:#d8eedf;border-left:3px solid #54a979}.table-card table.ti-table .ti-subactivity-percent{font-weight:800}.modal .ti-form-section,.modal .ti-point-section{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}.modal .ti-point-section .ti-point-activity-head{margin-top:8px}@media(max-width:760px){.table-card table.ti-table>tbody>tr.ti-section-row td{padding:12px}.table-card table.ti-table .ti-subactivity-list{min-width:260px}}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  function isTI(){return activeTab==='ci-ti'}
+  function typeOf(task){
+    var raw=String(task&&task.tiType||'');
+    if(raw==='Control SOX por implementar'||raw==='Implementación de control'||raw==='Control por implementar')return'Control por implementar';
+    if(raw==='Punto identificado por EY TI'||raw==='Punto identificado por el auditor externo'||raw==='Punto identificado por auditor externo')return'Punto identificado por el auditor externo';
+    if(raw==='Punto identificado por Auditoría Corporativa'||raw==='Punto identificado por Auditoria Corporativa')return'Punto identificado por Auditoría Corporativa';
+    return'General';
+  }
+  function escMain(value){return esc(value==null?'':String(value))}
+  function subPct(sub){var value=Number(sub&&sub.avance)||0;return Math.round(value<=1&&value>0?value*100:value)}
+  function frontMain(task,type){
+    if(type==='Control por implementar')return'Controles por implementar';
+    if(type==='Punto identificado por el auditor externo')return'Puntos auditor externo';
+    if(type==='Punto identificado por Auditoría Corporativa')return'Auditoría Corporativa';
+    return task.frente||'General';
+  }
+  function ownersMain(task,type){
+    if(type==='General')return{first:task.respPrimera||'',second:task.respSegunda||''};
+    return{first:task.tiOwner||task.resp||'',second:''};
+  }
+  function activityMain(task){
+    var type=typeOf(task),reference=task.tiReference?'<small class="ti-main-reference">Referencia: '+escMain(task.tiReference)+'</small>':'',list=Array.isArray(task.subactivities)?task.subactivities.filter(function(sub){return sub&&sub.name}):[];
+    var plan=list.length?'<div class="ti-main-plan">'+list.map(function(sub,index){return'<div class="ti-main-plan-row"><span>'+ (index+1) +'</span><span>'+escMain(sub.name)+'</span><b>'+subPct(sub)+'%</b></div>'}).join('')+'</div>':'';
+    var label=type==='Control por implementar'?'Control':'Plan de remediación';
+    return reference+'<button class="task-title task-link" onclick="openTask('+task.__index+')">'+escMain(task.actividad||'—')+'</button>'+(plan?'<small class="ti-main-plan-label">'+label+'</small>'+plan:'');
+  }
+  function notesMain(task){
+    var notes=[task.observacion,task.proximosPasos].filter(Boolean);
+    return escMain(notes.join(' · ')||task.nota||'—');
+  }
+  var previousRows=window.renderRows;
+  window.renderRows=function(items){
+    if(!isTI())return previousRows.apply(this,arguments);
+    var table=document.querySelector('.table-card table');
+    if(table){table.classList.remove('ti-table');table.classList.add('ti-standard-table')}
+    var head=document.querySelector('.table-card thead tr');
+    if(head)head.innerHTML='<th>Frente</th><th>Actividad</th><th>Responsable primera línea</th><th>Responsable segunda línea</th><th>Due Date</th><th>Fecha fin</th><th>Estado</th><th>Avance</th><th>Observaciones / próximos pasos</th><th>Acciones</th>';
+    var tbody=document.getElementById('rows');
+    if(!tbody)return;
+    if(!items.length){tbody.innerHTML='<tr><td colspan="10" class="empty">No se encontraron registros con estos filtros.</td></tr>';return}
+    tbody.innerHTML=items.map(function(pair){
+      var source=pair.t,type=typeOf(source),owners=ownersMain(source,type),task=Object.assign({},source,{__index:pair.i}),s=status(source),meta=statusMeta(s),due=type==='General'?source.dueDate:deadline(source),end=type==='General'?source.fin:'',percent=pct(source);
+      return'<tr id="task-row-'+pair.i+'"><td>'+escMain(frontMain(source,type))+'</td><td>'+activityMain(task)+'</td><td>'+escMain(owners.first||'Por asignar')+'</td><td>'+escMain(owners.second||'—')+'</td><td>'+fmtDate(due)+'</td><td>'+fmtDate(end)+'</td><td><span class="status '+meta[0]+'">'+escMain(meta[1])+'</span></td><td><div class="mini-progress" title="'+escMain(progressLabel(source))+'"><div class="track"><div class="fill" style="width:'+percent+'%"></div></div><b>'+percent+'%</b></div></td><td class="observations-cell">'+notesMain(source)+'</td><td><div class="row-actions">'+(session.role==='Administrador'?'<button class="icon-btn" onclick="removeTask('+pair.i+')">Eliminar</button>':'')+'</div></td></tr>';
+    }).join('');
+  };
+  var style=document.createElement('style');style.textContent='.table-card table.ti-standard-table{min-width:1180px}.table-card table.ti-standard-table>thead>tr>th{background:#f7f8fb;color:var(--muted);border-top:0}.table-card table.ti-standard-table>tbody>tr>td{background:#fff;color:var(--ink)}.table-card table.ti-standard-table>tbody>tr:hover>td{background:#fbfcfe}.table-card table.ti-standard-table .ti-main-reference{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}.table-card table.ti-standard-table .ti-main-plan-label{display:block;color:var(--muted);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:9px}.table-card table.ti-standard-table .ti-main-plan{display:grid;gap:4px;margin-top:4px;max-width:560px}.table-card table.ti-standard-table .ti-main-plan-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:start;padding:4px 6px;border:1px solid #edf0f4;border-radius:5px;background:#fafbfc;font-size:11px;line-height:1.35}.table-card table.ti-standard-table .ti-main-plan-row>span:first-child{color:var(--muted);font-weight:800}.table-card table.ti-standard-table .ti-main-plan-row b{color:var(--blue);font-size:10px;white-space:nowrap}.table-card table.ti-standard-table td:nth-child(1){min-width:145px}.table-card table.ti-standard-table td:nth-child(2){min-width:300px}.table-card table.ti-standard-table td:nth-child(3),.table-card table.ti-standard-table td:nth-child(4){min-width:150px}.table-card table.ti-standard-table td:nth-child(9){min-width:220px}.modal .ti-form-section,.modal .ti-point-section{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  var style=document.createElement('style');
+  style.textContent='.modal .ti-modal-header{margin:0 0 18px;padding:0;background:transparent;border-radius:0;color:var(--ink);box-shadow:none}.modal .ti-modal-header h2{margin:0 0 5px;color:var(--ink);font-size:revert}.modal .ti-modal-header p{margin:0 0 18px;color:var(--muted)}.modal .ti-modal-kicker{display:none}.modal .ti-form-section,.modal .ti-point-section{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}';
+  document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  function isTI(){return activeTab==='ci-ti'}
+  function typeOf(task){
+    var raw=String(task&&task.tiType||'');
+    if(raw==='Control SOX por implementar'||raw==='Implementación de control'||raw==='Control por implementar')return'Control por implementar';
+    if(raw==='Punto identificado por EY TI'||raw==='Punto identificado por el auditor externo'||raw==='Punto identificado por auditor externo')return'Punto identificado por el auditor externo';
+    if(raw==='Punto identificado por Auditoría Corporativa'||raw==='Punto identificado por Auditoria Corporativa')return'Punto identificado por Auditoría Corporativa';
+    return'General';
+  }
+  function escMain(value){return esc(value==null?'':String(value))}
+  function subPct(sub){var value=Number(sub&&sub.avance)||0;return Math.round(value<=1&&value>0?value*100:value)}
+  function frontMain(task,type){
+    if(type==='Control por implementar')return'Controles por implementar';
+    if(type==='Punto identificado por el auditor externo')return'Puntos identificados por el auditor externo';
+    if(type==='Punto identificado por Auditoría Corporativa')return'Puntos identificados por Auditoría Corporativa';
+    return task.frente||'General';
+  }
+  function ownersMain(task,type){return type==='General'?{first:task.respPrimera||'',second:task.respSegunda||''}:{first:task.tiOwner||task.resp||'',second:''}}
+  function planMain(task){
+    var list=Array.isArray(task.subactivities)?task.subactivities.filter(function(sub){return sub&&sub.name}):[];
+    if(!list.length)return'<span class="ti-no-plan">—</span>';
+    return'<div class="ti-front-plan">'+list.map(function(sub,index){return'<div class="ti-front-plan-row"><span class="ti-front-plan-number">'+(index+1)+'</span><span>'+escMain(sub.name)+'</span><b>'+subPct(sub)+'%</b></div>'}).join('')+'</div>';
+  }
+  function notesMain(task){return escMain([task.observacion,task.proximosPasos].filter(Boolean).join(' · ')||task.nota||'—')}
+  var previousRows=window.renderRows;
+  window.renderRows=function(items){
+    if(!isTI())return previousRows.apply(this,arguments);
+    var table=document.querySelector('.table-card table');
+    if(table){table.classList.remove('ti-table','ti-standard-table');table.classList.add('ti-front-table')}
+    var head=document.querySelector('.table-card thead tr');
+    if(head)head.innerHTML='<th>Frente</th><th>Actividad</th><th>Subactividades / plan de trabajo</th><th>Responsable primera línea</th><th>Responsable segunda línea</th><th>Due Date</th><th>Fecha fin</th><th>Estado</th><th>Avance</th><th>Observaciones / próximos pasos</th><th>Acciones</th>';
+    var tbody=document.getElementById('rows');if(!tbody)return;
+    if(!items.length){tbody.innerHTML='<tr><td colspan="11" class="empty">No se encontraron registros con estos filtros.</td></tr>';return}
+    var order=['Controles por implementar','Puntos identificados por el auditor externo','Puntos identificados por Auditoría Corporativa','Registros generales'],groups={};
+    items.forEach(function(pair){var source=pair.t,type=typeOf(source),front=frontMain(source,type);(groups[front]||(groups[front]=[])).push(pair)});
+    var fronts=order.filter(function(front){return groups[front]&&groups[front].length}).concat(Object.keys(groups).filter(function(front){return order.indexOf(front)<0})),out=[];
+    fronts.forEach(function(front){
+      var rows=groups[front];out.push('<tr class="ti-front-section"><td colspan="11">'+escMain(front)+' · '+rows.length+' registros</td></tr>');
+      rows.forEach(function(pair){
+        var source=pair.t,type=typeOf(source),owners=ownersMain(source,type),s=status(source),meta=statusMeta(s),due=type==='General'?source.dueDate:deadline(source),end=type==='General'?source.fin:(source.fin||''),percent=pct(source),reference=source.tiReference?'<small class="ti-main-reference">Referencia: '+escMain(source.tiReference)+'</small>':'';
+        out.push('<tr id="task-row-'+pair.i+'"><td>'+escMain(front)+'</td><td>'+reference+'<button class="task-title task-link" onclick="openTask('+pair.i+')">'+escMain(source.actividad||'—')+'</button></td><td>'+planMain(source)+'</td><td>'+escMain(owners.first||'Por asignar')+'</td><td>'+escMain(owners.second||'—')+'</td><td>'+fmtDate(due)+'</td><td>'+fmtDate(end)+'</td><td><span class="status '+meta[0]+'">'+escMain(meta[1])+'</span></td><td><div class="mini-progress" title="'+escMain(progressLabel(source))+'"><div class="track"><div class="fill" style="width:'+percent+'%"></div></div><b>'+percent+'%</b></div></td><td class="observations-cell">'+notesMain(source)+'</td><td><div class="row-actions">'+(session.role==='Administrador'?'<button class="icon-btn" onclick="removeTask('+pair.i+')">Eliminar</button>':'')+'</div></td></tr>');
+      });
+    });
+    tbody.innerHTML=out.join('');
+  };
+  var style=document.createElement('style');style.textContent='.table-card table.ti-front-table{min-width:1550px}.table-card table.ti-front-table>thead>tr>th{background:#f7f8fb;color:var(--muted);border-top:0}.table-card table.ti-front-table>tbody>tr:not(.ti-front-section)>td{background:#fff;color:var(--ink)}.table-card table.ti-front-table>tbody>tr:not(.ti-front-section):hover>td{background:#fbfcfe}.table-card table.ti-front-table>tbody>tr.ti-front-section td{padding:13px 14px;background:#f7f8fb;color:var(--ink);font-weight:800;border-top:1px solid var(--line);text-transform:uppercase;font-size:11px;letter-spacing:.04em}.table-card table.ti-front-table td:nth-child(1){min-width:180px}.table-card table.ti-front-table td:nth-child(2){min-width:320px}.table-card table.ti-front-table td:nth-child(3){min-width:330px}.table-card table.ti-front-table td:nth-child(4),.table-card table.ti-front-table td:nth-child(5){min-width:155px}.table-card table.ti-front-table td:nth-child(10){min-width:230px}.table-card table.ti-front-table .ti-main-reference{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}.table-card table.ti-front-table .ti-front-plan{display:grid;gap:5px}.table-card table.ti-front-table .ti-front-plan-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:start;padding:5px 7px;border:1px solid #edf0f4;border-radius:6px;background:#fafbfc;font-size:11px;line-height:1.35}.table-card table.ti-front-table .ti-front-plan-number{color:var(--muted);font-weight:800}.table-card table.ti-front-table .ti-front-plan-row b{color:var(--blue);font-size:10px;white-space:nowrap}.table-card table.ti-front-table .ti-no-plan{color:var(--muted);font-size:12px}@media(max-width:760px){.table-card table.ti-front-table{min-width:1450px}.table-card table.ti-front-table>tbody>tr.ti-front-section td{padding:12px}}';document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  function initCapsLockNotice(){
+    var input=document.getElementById('loginPass');if(!input||document.getElementById('capsLockNotice'))return;
+    var notice=document.createElement('div');notice.id='capsLockNotice';notice.className='caps-lock-notice hidden';notice.setAttribute('role','status');notice.textContent='Bloq Mayús está activado. La contraseña distingue mayúsculas y minúsculas.';input.insertAdjacentElement('afterend',notice);
+    function update(event){
+      if(event&&typeof event.getModifierState==='function')notice.classList.toggle('hidden',!event.getModifierState('CapsLock'));
+    }
+    input.addEventListener('keydown',update);input.addEventListener('keyup',update);input.addEventListener('focus',update);input.addEventListener('blur',function(){notice.classList.add('hidden')});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initCapsLockNotice);else initCapsLockNotice();
+  var style=document.createElement('style');style.textContent='.caps-lock-notice{margin-top:7px;padding:8px 10px;border:1px solid #f0d29b;border-radius:7px;background:#fff8e8;color:#8a5700;font-size:11px;line-height:1.35}.caps-lock-notice.hidden{display:none}';document.head.appendChild(style);
+})();
+</script>
 </body>
 </html>
