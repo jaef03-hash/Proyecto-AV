@@ -1088,8 +1088,8 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   function nextStepsTi(task){return task&&task.proximosPasos||''}
   function pointPlanTi(task){return(Array.isArray(task&&task.subactivities)?task.subactivities:[]).map(function(sub){return sub.name||''}).filter(Boolean).join('\n')}
   function ownersTi(task){return[task&&task.tiOwner,task&&task.respPrimera,task&&task.respSegunda,task&&task.resp].filter(Boolean).join(' / ')}
-  function firstOwnerTi(task){return canonicalType(task)==='General'?(task.respPrimera||''):(task.tiOwner||task.resp||'')}
-  function secondOwnerTi(task){return canonicalType(task)==='General'?(task.respSegunda||''):''}
+  function firstOwnerTi(task){return task.respPrimera||task.tiOwner||task.resp||''}
+  function secondOwnerTi(task){return task.respSegunda||''}
   function controlRowsTi(){return Array.from(document.querySelectorAll('#tiSubactivityRows .ti-subactivity-editor-row')).map(function(row){var name=row.querySelector('.ti-subactivity-name'),progress=row.querySelector('.ti-subactivity-progress');return{name:name?name.value.trim():'',avance:Math.max(0,Math.min(100,Number(progress&&progress.value)||0))}})}
   function controlAverageTi(rows){var valid=rows.filter(function(row){return row.name});return valid.length?Math.round(valid.reduce(function(sum,row){return sum+Number(row.avance||0)},0)/valid.length):0}
   function renderControlRowsTi(rows){
@@ -1376,7 +1376,7 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
     if(type==='Punto identificado por Auditoría Corporativa')return'Puntos identificados por Auditoría Corporativa';
     return task.frente||'General';
   }
-  function ownersMain(task,type){return type==='General'?{first:task.respPrimera||'',second:task.respSegunda||''}:{first:task.tiOwner||task.resp||'',second:''}}
+  function ownersMain(task,type){return{first:task.respPrimera||task.tiOwner||task.resp||'',second:task.respSegunda||''}}
   function planMain(task){
     var list=Array.isArray(task.subactivities)?task.subactivities.filter(function(sub){return sub&&sub.name}):[];
     if(!list.length)return'<span class="ti-no-plan">—</span>';
@@ -1606,6 +1606,51 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   var style=document.createElement('style');
   style.textContent='.owner-admin-tools{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.owner-admin-tools .control{flex:1;min-width:150px}.owner-admin-tools .btn{white-space:nowrap}.cr-owner-picker-field{min-width:0}.cr-owner-picker-field .owner-dropdown{display:block}.cr-owner-picker-field .owner-dropdown>summary{width:100%}.table-card table.itgc-responsible-table{min-width:1700px}.table-card table.itgc-responsible-table>thead>tr>th{background:#f7f8fb;color:var(--muted);border-top:0}.table-card table.itgc-responsible-table>tbody>tr>td{background:#fff;color:var(--ink)}.table-card table.itgc-responsible-table>tbody>tr:hover>td{background:#fbfcfe}';
   document.head.appendChild(style);
+})();
+</script>
+<script>
+(function(){
+  function isTi(){return activeTab==='ci-ti';}
+  function ownerValue(task){return task&&task.tiOwner||task&&task.resp||'';}
+  function enhanceSpecificFields(old){
+    var type=document.getElementById('tiType');if(!type||type.value==='General')return;
+    var ownerBlock=document.getElementById('tiSpecificOwner');
+    if(ownerBlock&&!ownerBlock.getAttribute('data-shared-owners')){
+      var first=old&&old.respPrimera||ownerValue(old),second=old&&old.respSegunda||'';
+      ownerBlock.classList.add('full');ownerBlock.setAttribute('data-shared-owners','true');
+      ownerBlock.innerHTML='<input id="tiOwner" type="hidden" value="'+esc([first,second].filter(Boolean).join(' / '))+'"><div class="grid2"><div>'+ownerPicker('tiFirst','RESPONSABLE PRIMERA LÍNEA',first)+'</div><div>'+ownerPicker('tiSecond','RESPONSABLE SEGUNDA LÍNEA',second)+'</div></div>';
+    }
+    var dateBlock=document.getElementById('tiSpecificDate');
+    if(dateBlock&&!dateBlock.getAttribute('data-split-dates')){
+      var dueInput=document.getElementById('tiDate'),due=dueInput?dueInput.value:dateForInput(deadline(old||{})),fin=dateForInput(old&&old.fin||'');
+      dateBlock.classList.add('full');dateBlock.setAttribute('data-split-dates','true');
+      dateBlock.innerHTML='<div class="grid2"><label><span class="label">DUE DATE / FECHA COMPROMISO</span><input id="tiDate" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" class="control" value="'+esc(due)+'"></label><label><span class="label">FECHA FIN</span><input id="tiFin" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" class="control" value="'+esc(fin)+'"></label></div>';
+    }
+  }
+  var previousOpen=window.openTask;
+  window.openTask=function(index){
+    if(!isTi())return previousOpen.apply(this,arguments);
+    var old=Number.isInteger(index)?current().tasks[index]:{},result=previousOpen.apply(this,arguments);enhanceSpecificFields(old);return result;
+  };
+  var previousSave=window.saveTask;
+  window.saveTask=function(){
+    if(!isTi())return previousSave.apply(this,arguments);
+    var type=document.getElementById('tiType'),specific=!!(type&&type.value!=='General'&&document.getElementById('owners-tiFirst')),first=specific?selectedOwners('tiFirst'):'',second=specific?selectedOwners('tiSecond'):'',combined=[first,second].filter(Boolean).join(' / '),finInput=specific?document.getElementById('tiFin'):null,fin=finInput?parseDateInput(val('tiFin')):'',before=editingIndex;
+    if(specific){var hidden=document.getElementById('tiOwner');if(hidden)hidden.value=combined;}
+    var result=previousSave.apply(this,arguments);
+    if(specific&&!document.getElementById('tiType')){
+      var index=before===null?current().tasks.length-1:before,item=current().tasks[index];
+      if(item){item.tiOwner=combined;item.resp=combined;item.respPrimera=first;item.respSegunda=second;item.fin=fin;if(typeof registerResponsibleValues==='function')registerResponsibleValues(combined);persist();}
+    }
+    return result;
+  };
+  var previousRows=window.renderRows;
+  window.renderRows=function(items){
+    var result=previousRows.apply(this,arguments);if(!isTi())return result;
+    (items||[]).forEach(function(pair){var row=document.getElementById('task-row-'+pair.i);if(!row)return;var cells=row.querySelectorAll('td'),task=pair.t||{},first=task.respPrimera||task.tiOwner||task.resp||'Por asignar',second=task.respSegunda||'—';if(cells[3])cells[3].textContent=first;if(cells[4])cells[4].textContent=second;});
+    return result;
+  };
+  var style=document.createElement('style');style.textContent='#tiSpecificOwner.full{grid-column:1/-1}#tiSpecificDate.full{grid-column:1/-1}#tiSpecificOwner .owner-dropdown,#tiSpecificDate .control{width:100%;box-sizing:border-box}';document.head.appendChild(style);
 })();
 </script>
 </body>
