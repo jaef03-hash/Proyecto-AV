@@ -1421,5 +1421,192 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   var style=document.createElement('style');style.textContent='.caps-lock-notice{margin-top:7px;padding:8px 10px;border:1px solid #f0d29b;border-radius:7px;background:#fff8e8;color:#8a5700;font-size:11px;line-height:1.35}.caps-lock-notice.hidden{display:none}';document.head.appendChild(style);
 })();
 </script>
+<script>
+(function(){
+  function ownerParts(value){
+    return String(value||'').split('/').map(function(item){return item.trim()}).filter(Boolean);
+  }
+  function ownerKey(value){
+    return String(value||'').trim().toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  }
+  function ownerList(){
+    if(!Array.isArray(state.respList))state.respList=[];
+    if(!Array.isArray(state.respExcluded))state.respExcluded=[];
+    return state.respList;
+  }
+  function assignedOwnerValues(){
+    var values=[];
+    (state.tabs||[]).forEach(function(tab){
+      (tab.tasks||[]).forEach(function(task){
+        if(tab.id==='status-matriz-itgc'){
+          values.push(task.respPrimera,task.respSegunda,task.itgc&&task.itgc.responsablePrimera,task.itgc&&task.itgc.responsableSegunda);
+        }else{
+          values.push(task.respPrimera,task.respSegunda,task.tiOwner,task.resp);
+        }
+      });
+    });
+    return values.reduce(function(all,value){return all.concat(ownerParts(value))},[]);
+  }
+  function catalogNames(selectedValue){
+    var ordered=[],keys={};
+    ownerParts(selectedValue).concat(ownerList(),assignedOwnerValues()).forEach(function(value){
+      var name=String(value||'').trim(),key=ownerKey(name);
+      if(!name||keys[key])return;
+      keys[key]=true;ordered.push(name);
+    });
+    return ordered.sort(function(a,b){return a.localeCompare(b,'es',{sensitivity:'base'})});
+  }
+  function saveCatalog(){
+    if(typeof persist==='function')persist();else try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}
+  }
+  function registerOwners(value){
+    var list=ownerList(),excluded=state.respExcluded||[],changed=false;
+    ownerParts(value).forEach(function(name){
+      var key=ownerKey(name);if(excluded.indexOf(key)>=0)return;
+      if(!list.some(function(existing){return ownerKey(existing)===key})){list.push(name);changed=true;}
+    });
+    if(changed)saveCatalog();
+    return changed;
+  }
+  window.registerResponsibleValues=registerOwners;
+
+  function refreshOwnerPickers(exceptId){
+    Array.from(document.querySelectorAll('.owner-options')).forEach(function(container){
+      var id=String(container.id||'').replace(/^owners-/,'');if(!id||id===exceptId)return;
+      var selected=Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(function(check){return check.value}),locked=!!(container.querySelector('input[type="checkbox"]')||{}).disabled;
+      container.innerHTML=catalogNames(selected.join(' / ')).map(function(name){return ownerOption(id,name,selected.some(function(value){return ownerKey(value)===ownerKey(name)}),locked)}).join('');
+      if(typeof updateOwnerSummary==='function')updateOwnerSummary(id);
+    });
+  }
+
+  function ownerOption(id,name,selected,locked){
+    return '<label><input type="checkbox" value="'+esc(name)+'" '+(selected?'checked ':'')+(locked?'disabled ':'')+'onchange="updateOwnerSummary(\''+id+'\')">'+esc(name)+'</label>';
+  }
+  window.ownerPicker=function(id,label,value,locked){
+    var selected=ownerParts(value),selectedKeys=selected.map(ownerKey),names=catalogNames(value),isAdmin=!!(session&&session.role==='Administrador');
+    var adminTools=isAdmin&&!locked?'<div class="owner-admin-tools"><input id="add-'+id+'" class="control" placeholder="Agregar responsable"><button type="button" class="btn" onclick="inlineOwner(\''+id+'\')">Agregar</button><button type="button" class="btn ghost" onclick="removeSelectedOwnersFromList(\''+id+'\')">Quitar de lista</button></div>':'';
+    return '<span class="label" style="margin-top:12px">'+esc(label)+'</span><details class="owner-dropdown" id="dropdown-'+id+'" ontoggle="ownerDropdownToggle(this)"><summary class="control"><span id="owner-summary-'+id+'">'+esc(selected.join(' / ')||'Seleccionar responsables…')+'</span></summary><div class="owner-popover"><div id="owners-'+id+'" class="owner-options">'+names.map(function(name){return ownerOption(id,name,selectedKeys.indexOf(ownerKey(name))>=0,!!locked)}).join('')+'</div>'+adminTools+'<button type="button" class="btn" style="margin-top:8px" onclick="document.getElementById(\'dropdown-'+id+'\').open=false">Listo</button></div></details>';
+  };
+  window.inlineOwner=function(id){
+    if(!session||session.role!=='Administrador'){if(typeof toast==='function')toast('Solo el administrador puede modificar la lista de responsables');return;}
+    var input=document.getElementById('add-'+id),name=input&&input.value.trim(),container=document.getElementById('owners-'+id);if(!name||!container)return;
+    state.respExcluded=(state.respExcluded||[]).filter(function(key){return key!==ownerKey(name)});
+    registerOwners(name);
+    var existing=Array.from(container.querySelectorAll('input[type="checkbox"]')).find(function(check){return ownerKey(check.value)===ownerKey(name)});
+    if(existing){existing.checked=true;input.value='';updateOwnerSummary(id);refreshOwnerPickers(id);return;}
+    var label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=name;check.checked=true;check.onchange=function(){updateOwnerSummary(id)};label.append(check,document.createTextNode(name));container.append(label);input.value='';updateOwnerSummary(id);
+    refreshOwnerPickers(id);
+  };
+  window.removeSelectedOwnersFromList=function(id){
+    if(!session||session.role!=='Administrador'){if(typeof toast==='function')toast('Solo el administrador puede modificar la lista de responsables');return;}
+    var selected=Array.from(document.querySelectorAll('#owners-'+id+' input[type="checkbox"]:checked')).map(function(check){return check.value}),list=ownerList(),before=list.length;
+    if(!selected.length){if(typeof toast==='function')toast('Selecciona al menos un responsable para quitarlo de la lista');return;}
+    state.respList=list.filter(function(name){return selected.every(function(value){return ownerKey(value)!==ownerKey(name)})});
+    state.respExcluded=[...(state.respExcluded||[]),...selected.map(ownerKey)].filter(function(key,index,array){return key&&array.indexOf(key)===index});
+    if(state.respList.length===before){if(typeof toast==='function')toast('Los responsables seleccionados ya no están en el catálogo');return;}
+    saveCatalog();
+    refreshOwnerPickers(id);
+    if(typeof toast==='function')toast('Responsable(s) retirado(s) del catálogo. Las asignaciones existentes se conservaron.');
+  };
+
+  function cleanExcludedOwners(){
+    var excluded=state.respExcluded||[],list=ownerList(),filtered=list.filter(function(name){return excluded.indexOf(ownerKey(name))<0});
+    if(filtered.length!==list.length){state.respList=filtered;saveCatalog();}
+  }
+  var previousTaskSave=window.saveTask;
+  if(typeof previousTaskSave==='function')window.saveTask=function(){var result=previousTaskSave.apply(this,arguments);cleanExcludedOwners();return result;};
+
+  function enhanceItgcOpen(){
+    var input=document.getElementById('iCode');if(!input||document.getElementById('itgcOwnerFields'))return;
+    var task=Number.isInteger(editingIndex)?current().tasks[editingIndex]:{},detail=task&&task.itgc||{},first=task.respPrimera||detail.responsablePrimera||'',second=task.respSegunda||detail.responsableSegunda||'';
+    registerOwners(first);registerOwners(second);
+    var codeLabel=input.closest?input.closest('label'):input.parentNode;
+    if(codeLabel)codeLabel.insertAdjacentHTML('afterend','<div id="itgcOwnerFields" class="full"><div class="grid2"><div>'+ownerPicker('itgcFirst','Responsable primera línea',first)+'</div><div>'+ownerPicker('itgcSecond','Responsable segunda línea',second)+'</div></div></div>');
+  }
+  if(typeof window.openItgcTask==='function'){
+    var previousItgcOpen=window.openItgcTask;
+    window.openItgcTask=function(){var result=previousItgcOpen.apply(this,arguments);enhanceItgcOpen();return result;};
+  }
+  if(typeof window.saveItgcTask==='function'){
+    var previousItgcSave=window.saveItgcTask;
+    window.saveItgcTask=function(){
+      var first=document.getElementById('owners-itgcFirst')?selectedOwners('itgcFirst'):'',second=document.getElementById('owners-itgcSecond')?selectedOwners('itgcSecond'):'';
+      var hadForm=!!document.getElementById('iCode'),result=previousItgcSave.apply(this,arguments);
+      if(hadForm&&(!document.querySelector('.modal')||!document.getElementById('iCode'))){
+        var index=editingIndex===null?current().tasks.length-1:editingIndex,item=current().tasks[index];
+        if(item){item.respPrimera=first;item.respSegunda=second;item.resp=[first,second].filter(Boolean).join(' / ');item.itgc=item.itgc||{};item.itgc.responsablePrimera=first;item.itgc.responsableSegunda=second;registerOwners([first,second].join(' / '));persist();}
+      }
+      return result;
+    };
+  }
+
+  function itgcOwners(task){return ownerParts([task&&task.respPrimera,task&&task.respSegunda].filter(Boolean).join(' / '));}
+  var previousItgcFiltered=window.getFiltered;
+  if(typeof previousItgcFiltered==='function')window.getFiltered=function(){
+    if(activeTab!=='status-matriz-itgc')return previousItgcFiltered.apply(this,arguments);
+    var tab=current(),search=(document.getElementById('search').value||'').trim().toLowerCase(),sf=document.getElementById('statusFilter').value,of=document.getElementById('ownerFilter').value,ff=document.getElementById('frontFilter').value;
+    return tab.tasks.map(function(task,index){return{t:task,i:index}}).filter(function(pair){
+      var task=pair.t,x=task.itgc||{},owners=itgcOwners(task),text=[x.control||task.frente,x.dominio,x.codigo,task.actividad,owners.join(' / '),x.observacion||task.nota,x.proximosPasos].join(' ').toLowerCase();
+      return(!search||text.indexOf(search)>=0)&&(!sf||status(task)===sf)&&(!of||owners.indexOf(of)>=0)&&(!ff||task.frente===ff||x.control===ff);
+    });
+  };
+  var previousItgcOptions=window.setOptions;
+  if(typeof previousItgcOptions==='function')window.setOptions=function(){
+    if(activeTab!=='status-matriz-itgc')return previousItgcOptions.apply(this,arguments);
+    var tasks=current().tasks||[],owners=[];tasks.forEach(function(task){owners=owners.concat(itgcOwners(task))});owners=owners.concat(ownerList());owners=[...new Set(owners.map(function(name){return String(name).trim()}).filter(Boolean))].sort(function(a,b){return a.localeCompare(b,'es',{sensitivity:'base'})});
+    var fronts=[...new Set(tasks.map(function(task){return(task.itgc&&task.itgc.control)||task.frente}).filter(Boolean))].sort(),s=document.getElementById('statusFilter'),o=document.getElementById('ownerFilter'),f=document.getElementById('frontFilter'),sv=s.value,ov=o.value,fv=f.value;
+    s.innerHTML='<option value="">Todos los estados</option>'+['Completada','On Track','Concern','Pendiente','Por vencer','Atrasada'].map(function(value){return'<option>'+value+'</option>'}).join('');
+    o.innerHTML='<option value="">Todos los responsables</option>'+owners.map(function(value){return'<option>'+esc(value)+'</option>'}).join('');
+    f.innerHTML='<option value="">Todos los controles</option>'+fronts.map(function(value){return'<option>'+esc(value)+'</option>'}).join('');
+    s.value=sv;o.value=ov;f.value=fv;
+  };
+  var previousRenderRowsForItgc=window.renderRows;
+  if(typeof previousRenderRowsForItgc==='function')window.renderRows=function(items){
+    if(activeTab!=='status-matriz-itgc')return previousRenderRowsForItgc.apply(this,arguments);
+    var table=document.querySelector('.table-card table'),head=document.querySelector('.table-card thead tr'),tbody=document.getElementById('rows');
+    if(table)table.classList.add('itgc-responsible-table');
+    if(head)head.innerHTML='<th>Control</th><th>Dominio</th><th>Código</th><th>Nombre del control</th><th>Responsable primera línea</th><th>Responsable segunda línea</th><th>Estado</th><th>Observación</th><th>Socialización</th><th>Envío de acta</th><th>Aprobación</th><th>Acciones</th>';
+    if(!tbody)return;
+    if(!items.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No se encontraron controles con estos filtros.</td></tr>';return;}
+    tbody.innerHTML=items.map(function(pair){var t=pair.t,i=pair.i,x=t.itgc||{},owners=itgcOwners(t),meta=statusMeta(status(t));return'<tr id="task-row-'+i+'" onclick="openTask('+i+')"><td class="front-cell">'+esc(x.control||t.frente)+'</td><td>'+esc(x.dominio||'')+'</td><td class="tag">'+esc(x.codigo||'')+'</td><td><button class="task-title task-link" onclick="event.stopPropagation();openTask('+i+')">'+esc(t.actividad)+'</button></td><td>'+esc(owners[0]||'Por asignar')+'</td><td>'+esc(owners[1]||'—')+'</td><td><span class="status '+meta[0]+'">'+esc(x.estado||meta[1])+'</span></td><td class="observations-cell">'+esc(x.observacion||'—')+'</td><td>'+esc(x.socializacion||'—')+'</td><td>'+esc(x.envioActa||'—')+'</td><td>'+esc(x.aprobacion||'—')+'</td><td><button class="icon-btn" onclick="event.stopPropagation();removeTask('+i+')">Eliminar</button></td></tr>'}).join('');
+  };
+
+  function replaceCrOwnerField(input,id,pickerId,label){
+    if(!input)return;
+    var value=input.value||'',locked=!!input.disabled;
+    registerOwners(value);
+    var field=input.closest?input.closest('label'):input.parentNode;
+    if(field)field.outerHTML='<div class="cr-owner-picker-field"><input id="'+id+'" type="hidden" value="'+crEscForOwners(value)+'">'+ownerPicker(pickerId,label,value,locked)+'</div>';
+  }
+  function crEscForOwners(value){return esc(String(value||''));}
+  function enhanceCrOpen(){
+    var owner=document.getElementById('crOwner'),reviewer=document.getElementById('crReviewer');if(!owner&&!reviewer)return;
+    replaceCrOwnerField(owner,'crOwner','crOwnerPicker','RESPONSABLE DEL ÁREA');
+    replaceCrOwnerField(reviewer,'crReviewer','crReviewerPicker','REVISOR / RESPONSABLE SOX');
+  }
+  if(typeof window.crOpenTest==='function'){
+    var previousCrOpen=window.crOpenTest;
+    window.crOpenTest=function(){var result=previousCrOpen.apply(this,arguments);enhanceCrOpen();return result;};
+  }
+  if(typeof window.crRefreshTest==='function'){
+    var previousCrRefresh=window.crRefreshTest;
+    window.crRefreshTest=function(){var result=previousCrRefresh.apply(this,arguments);enhanceCrOpen();return result;};
+  }
+  if(typeof window.crSaveTest==='function'){
+    var previousCrSave=window.crSaveTest;
+    window.crSaveTest=function(){
+      var ownerInput=document.getElementById('crOwner'),reviewerInput=document.getElementById('crReviewer');
+      if(ownerInput)ownerInput.value=selectedOwners('crOwnerPicker');
+      if(reviewerInput)reviewerInput.value=selectedOwners('crReviewerPicker');
+      registerOwners([ownerInput&&ownerInput.value||'',reviewerInput&&reviewerInput.value||''].join(' / '));
+      return previousCrSave.apply(this,arguments);
+    };
+  }
+
+  var style=document.createElement('style');
+  style.textContent='.owner-admin-tools{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}.owner-admin-tools .control{flex:1;min-width:150px}.owner-admin-tools .btn{white-space:nowrap}.cr-owner-picker-field{min-width:0}.cr-owner-picker-field .owner-dropdown{display:block}.cr-owner-picker-field .owner-dropdown>summary{width:100%}.table-card table.itgc-responsible-table{min-width:1700px}.table-card table.itgc-responsible-table>thead>tr>th{background:#f7f8fb;color:var(--muted);border-top:0}.table-card table.itgc-responsible-table>tbody>tr>td{background:#fff;color:var(--ink)}.table-card table.itgc-responsible-table>tbody>tr:hover>td{background:#fbfcfe}';
+  document.head.appendChild(style);
+})();
+</script>
 </body>
 </html>
