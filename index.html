@@ -155,7 +155,7 @@ let syncKey=DEFAULT_MASTER_KEY,syncBin=DEFAULT_BIN_ID,syncReady=false,syncBusy=f
 function ownerNames(){return [...new Set([...state.respList,...state.tabs.flatMap(t=>t.tasks.flatMap(a=>allOwners(a).split('/').map(n=>n.trim()).filter(Boolean)))])].sort()}
 const originalOpenTask=openTask;
 openTask=function(i){originalOpenTask(i);const input=document.getElementById('mOwner');if(!input)return;const t=Number.isInteger(i)?current().tasks[i]:{};input.parentElement.outerHTML='<div class="full">'+legacyOwners(t)+ownerPicker('first','Responsable primera línea',t.respPrimera)+ownerPicker('second','Responsable segunda línea',t.respSegunda)+'</div>'};
-function ownerPicker(id,label,value){const selected=(value||'').split('/').map(x=>x.trim()).filter(Boolean);return '<span class="label" style="margin-top:12px">'+esc(label)+'</span><details class="owner-dropdown" id="dropdown-'+id+'" ontoggle="ownerDropdownToggle(this)"><summary class="control"><span id="owner-summary-'+id+'">'+esc(selected.join(' / ')||'Seleccionar responsables…')+'</span></summary><div class="owner-popover"><div id="owners-'+id+'" class="owner-options">'+ownerNames().map(n=>'<label><input type="checkbox" value="'+esc(n)+'" '+(selected.includes(n)?'checked':'')+' onchange="updateOwnerSummary(\''+id+'\')">'+esc(n)+'</label>').join('')+'</div><div style="display:flex;gap:8px;margin-top:8px"><input id="add-'+id+'" class="control" placeholder="Agregar responsable"><button class="btn" onclick="inlineOwner(\''+id+'\')">Agregar</button></div><button class="btn" style="margin-top:8px" onclick="document.getElementById(\'dropdown-'+id+'\').open=false">Listo</button></div></details>'}
+function ownerPicker(id,label,value){const selected=(value||'').split('/').map(x=>x.trim()).filter(Boolean);return '<span class="label" style="margin-top:12px">'+esc(label)+'</span><details class="owner-dropdown" id="dropdown-'+id+'" ontoggle="ownerDropdownToggle(this)"><summary class="control"><span id="owner-summary-'+id+'">'+esc(selected.join(' / ')||'Seleccionar responsables…')+'</span></summary><div class="owner-popover"><div id="owners-'+id+'" class="owner-options">'+ownerNames().map(n=>'<label><input type="checkbox" value="'+esc(n)+'" '+(selected.includes(n)?'checked':'')+' onchange="updateOwnerSummary(\''+id+'\')">'+esc(n)+'</label>').join('')+'</div><div style="display:flex;gap:8px;margin-top:8px"><input id="add-'+id+'" class="control" placeholder="Nombre y apellido"><button class="btn" onclick="inlineOwner(\''+id+'\')">Agregar</button></div><button class="btn" style="margin-top:8px" onclick="document.getElementById(\'dropdown-'+id+'\').open=false">Listo</button></div></details>'}
 function updateOwnerSummary(id){document.getElementById('owner-summary-'+id).textContent=selectedOwners(id)||'Seleccionar responsables…'}
 function ownerDropdownToggle(el){if(el.open)document.querySelectorAll('.owner-dropdown').forEach(other=>{if(other!==el)other.open=false})}
 document.addEventListener('click',e=>document.querySelectorAll('.owner-dropdown[open]').forEach(el=>{if(!el.contains(e.target))el.open=false}));
@@ -256,7 +256,6 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
     var month=CR_MONTHS[idx],d=crSaved[crKey(c.code,month)]||{},result=d.resultado||'Pendiente',meta=[];
     if(d.prelimDue)meta.push('P '+crFmt(d.prelimDue));
     if(d.finalDue)meta.push('F '+crFmt(d.finalDue));
-    if(d.recepcion)meta.push('Rec '+crFmt(d.recepcion));
     return '<td><button type="button" class="cr-month-cell" onclick="crOpenTest(\''+crEsc(c.code)+'\','+idx+',true)"><span class="cr-status '+crResultClass(result)+'">'+crEsc(result)+'</span><span class="cr-dates">'+(meta.length?crEsc(meta.join(' · ')):'Sin fechas')+'</span></button></td>';
   }
   function crSaveState(){
@@ -313,13 +312,10 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
       crField('PRELIMINAR · FECHA RECIBIDA','crPrelimReceived',crFmt(d.prelimReceived),'text',disabled)+
       crField('FINAL · FECHA ESPERADA','crFinalDue',crFmt(d.finalDue),'text',disabled)+
       crField('FINAL · FECHA RECIBIDA','crFinalReceived',crFmt(d.finalReceived),'text',disabled)+
-      crField('FECHA DE CORTE','crCutoff',crFmt(d.cutoff),'text',disabled)+
-      crField('FECHA DE RECEPCIÓN REAL','crReception',crFmt(d.recepcion),'text',disabled)+
       '<div class="section-title full">Responsables y resultado</div>'+
       crField('RESPONSABLE DEL ÁREA','crOwner',owner,'text',disabled)+
-      crField('REVISOR / RESPONSABLE SOX','crReviewer',d.revisor||'','text',disabled)+
+      crField('REVISOR / RESPONSABLE SOX · NOMBRE Y APELLIDO','crReviewer',d.revisor||'','text',disabled)+
       '<label><span class="label">RESULTADO DE LA PRUEBA</span><select class="control" id="crResult" '+(disabled?'disabled':'')+'><option'+((d.resultado||'Pendiente')==='Pendiente'?' selected':'')+'>Pendiente</option><option'+(d.resultado==='En proceso'?' selected':'')+'>En proceso</option><option'+(d.resultado==='Completada'?' selected':'')+'>Completada</option><option'+(d.resultado==='No efectivo'?' selected':'')+'>No efectivo</option></select></label>'+
-      crField('EVIDENCIA RECIBIDA','crEvidence',d.evidencia||'','text',disabled)+
       crArea('EXCEPCIONES / DESVIACIONES','crExceptions',d.excepciones||'',disabled)+
       crArea('OBSERVACIONES Y PRÓXIMOS PASOS','crNotes',d.observaciones||'',disabled)+
       '</div><div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Cerrar</button>'+actions+'</div>');
@@ -328,7 +324,7 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   function crSaveTest(){
     if(typeof canEdit==='function'&&!canEdit({}))return;
     var id=crKey(crModalCode,document.getElementById('crMonth').value);
-    crSaved[id]={prelimDue:crISO(document.getElementById('crPrelimDue').value),prelimReceived:crISO(document.getElementById('crPrelimReceived').value),finalDue:crISO(document.getElementById('crFinalDue').value),finalReceived:crISO(document.getElementById('crFinalReceived').value),cutoff:crISO(document.getElementById('crCutoff').value),recepcion:crISO(document.getElementById('crReception').value),responsable:document.getElementById('crOwner').value.trim(),revisor:document.getElementById('crReviewer').value.trim(),resultado:document.getElementById('crResult').value,evidencia:document.getElementById('crEvidence').value.trim(),excepciones:document.getElementById('crExceptions').value.trim(),observaciones:document.getElementById('crNotes').value.trim(),updatedAt:new Date().toISOString()};
+    crSaved[id]={prelimDue:crISO(document.getElementById('crPrelimDue').value),prelimReceived:crISO(document.getElementById('crPrelimReceived').value),finalDue:crISO(document.getElementById('crFinalDue').value),finalReceived:crISO(document.getElementById('crFinalReceived').value),responsable:document.getElementById('crOwner').value.trim(),revisor:document.getElementById('crReviewer').value.trim(),resultado:document.getElementById('crResult').value,excepciones:document.getElementById('crExceptions').value.trim(),observaciones:document.getElementById('crNotes').value.trim(),updatedAt:new Date().toISOString()};
     crSaveState(); closeModal(); crRender(); if(typeof toast==='function')toast('Prueba guardada'); 
   }
   var CR_EXPORT_FIELDS=[
@@ -347,7 +343,6 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
     {id:'schedule',label:'Fechas preliminares y finales esperadas/recibidas',group:'Detalle mensual',checked:true},
     {id:'monthlyResponsibles',label:'Responsables registrados por mes',group:'Detalle mensual',checked:true},
     {id:'result',label:'Resultado de la prueba',group:'Detalle mensual',checked:true},
-    {id:'evidence',label:'Evidencia recibida',group:'Detalle mensual',checked:true},
     {id:'exceptions',label:'Excepciones / desviaciones',group:'Detalle mensual',checked:true},
     {id:'notes',label:'Observaciones y próximos pasos',group:'Detalle mensual',checked:true}
   ].concat(CR_MONTHS.map(function(m,i){return{id:'month'+i,label:m,group:'Meses a incluir',checked:true};}));
@@ -363,10 +358,9 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   }
   function crMonthText(code,month,opts){
     var d=crSaved[crKey(code,month)]||{},parts=[];
-    if(opts.schedule){if(d.prelimDue)parts.push('P esperada: '+crFmt(d.prelimDue));if(d.prelimReceived)parts.push('P recibida: '+crFmt(d.prelimReceived));if(d.finalDue)parts.push('F esperada: '+crFmt(d.finalDue));if(d.finalReceived)parts.push('F recibida: '+crFmt(d.finalReceived));if(d.cutoff)parts.push('Corte: '+crFmt(d.cutoff));if(d.recepcion)parts.push('Recepción: '+crFmt(d.recepcion));}
+    if(opts.schedule){if(d.prelimDue)parts.push('P esperada: '+crFmt(d.prelimDue));if(d.prelimReceived)parts.push('P recibida: '+crFmt(d.prelimReceived));if(d.finalDue)parts.push('F esperada: '+crFmt(d.finalDue));if(d.finalReceived)parts.push('F recibida: '+crFmt(d.finalReceived));}
     if(opts.monthlyResponsibles){if(d.responsable)parts.push('Área: '+d.responsable);if(d.revisor)parts.push('SOX: '+d.revisor);}
     if(opts.result&&d.resultado)parts.push('Resultado: '+d.resultado);
-    if(opts.evidence&&d.evidencia)parts.push('Evidencia: '+d.evidencia);
     if(opts.exceptions&&d.excepciones)parts.push('Excepciones: '+d.excepciones);
     if(opts.notes&&d.observaciones)parts.push('Observaciones: '+d.observaciones);
     return parts.join(' | ');
@@ -1586,7 +1580,7 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
   function enhanceCrOpen(){
     var owner=document.getElementById('crOwner'),reviewer=document.getElementById('crReviewer');if(!owner&&!reviewer)return;
     replaceCrOwnerField(owner,'crOwner','crOwnerPicker','RESPONSABLE DEL ÁREA');
-    replaceCrOwnerField(reviewer,'crReviewer','crReviewerPicker','REVISOR / RESPONSABLE SOX');
+    replaceCrOwnerField(reviewer,'crReviewer','crReviewerPicker','REVISOR / RESPONSABLE SOX · NOMBRE Y APELLIDO');
   }
   if(typeof window.crOpenTest==='function'){
     var previousCrOpen=window.crOpenTest;
@@ -1669,7 +1663,7 @@ function deleteTab(id){if(!session||session.role!=='Administrador')return;const 
     var iso=dateToIso(input.value);input.value=iso;input.type='date';input.removeAttribute('inputmode');input.removeAttribute('maxlength');input.removeAttribute('placeholder');
   }
   function convertModalDates(){
-    ['mDate','mDueDate','tiDate','tiDueDate','tiFin','iSocialDate','iSendDate','iApprovalDate','crPrelimDue','crPrelimReceived','crFinalDue','crFinalReceived','crCutoff','crReception'].forEach(convertToCalendar);
+    ['mDate','mDueDate','tiDate','tiDueDate','tiFin','iSocialDate','iSendDate','iApprovalDate','crPrelimDue','crPrelimReceived','crFinalDue','crFinalReceived'].forEach(convertToCalendar);
   }
   var previousOpen=window.openTask;
   window.openTask=function(){var result=previousOpen.apply(this,arguments);convertModalDates();return result;};
