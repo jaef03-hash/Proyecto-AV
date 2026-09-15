@@ -2138,7 +2138,18 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
     state = loadState();
     sbSyncBaselineFromState();
     if (typeof ensureItgcTab === 'function') ensureItgcTab();
-    activeTab = state.tabs.some(t => t.id === activeTab) ? activeTab : state.tabs[0].id;
+    // Si este reload vino de "Actualizar ahora" o del aviso de cambios nuevos
+    // (ver pullCloud), recupera la pestaña en la que estaba la persona antes
+    // de actualizar, en vez de mandarla siempre a la primera. Sin esto, cada
+    // vez que alguien actualizaba perdía su lugar (por ejemplo, se quedaba
+    // viendo "Seguimiento SOX TI" aunque estuviera en Condición de Retorno).
+    var sbSavedTab = null;
+    try { sbSavedTab = sessionStorage.getItem('sbActiveTabBeforeReload'); sessionStorage.removeItem('sbActiveTabBeforeReload'); } catch (e) {}
+    if (sbSavedTab && state.tabs.some(t => t.id === sbSavedTab)) {
+      activeTab = sbSavedTab;
+    } else {
+      activeTab = state.tabs.some(t => t.id === activeTab) ? activeTab : state.tabs[0].id;
+    }
     renderTabs(); render();
     syncReady = true; syncDirty = false; syncBadge('Sincronizado');
     sbSubscribeRealtime();
@@ -2249,7 +2260,15 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
   // =====================================================================
   login = sbLogin;
   logout = sbLogout;
-  pullCloud = async function () { try { await sbFetchAllAndStore(); location.reload(); } catch (e) { toast('No se pudo actualizar desde Supabase: ' + (e && e.message ? e.message : e)); } };
+  pullCloud = async function () {
+    try {
+      // Guarda la pestaña actual para que sbEnterApp() la recupere después del
+      // reload (ver comentario allá) en vez de reiniciar siempre en la primera.
+      try { sessionStorage.setItem('sbActiveTabBeforeReload', activeTab); } catch (e2) {}
+      await sbFetchAllAndStore();
+      location.reload();
+    } catch (e) { toast('No se pudo actualizar desde Supabase: ' + (e && e.message ? e.message : e)); }
+  };
   pushCloud = sbPushChanges;
   openUsers = sbOpenUsers;
   openSync = sbOpenSync;
