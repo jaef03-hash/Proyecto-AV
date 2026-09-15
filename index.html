@@ -323,8 +323,15 @@ function deleteTab(id){if(!session||session.role==='Visualizador')return;const t
   function crRefreshTest(){var el=document.getElementById('crMonth');if(el){crModalMonth=el.value;crOpenTest(crModalCode,CR_MONTHS.indexOf(crModalMonth),false);}}
   function crSaveTest(){
     if(typeof canEdit==='function'&&!canEdit({}))return;
-    var id=crKey(crModalCode,document.getElementById('crMonth').value);
+    var month=document.getElementById('crMonth').value;
+    var id=crKey(crModalCode,month);
     crSaved[id]={prelimDue:crISO(document.getElementById('crPrelimDue').value),prelimReceived:crISO(document.getElementById('crPrelimReceived').value),finalDue:crISO(document.getElementById('crFinalDue').value),finalReceived:crISO(document.getElementById('crFinalReceived').value),responsable:document.getElementById('crOwner').value.trim(),revisor:document.getElementById('crReviewer').value.trim(),resultado:document.getElementById('crResult').value,excepciones:document.getElementById('crExceptions').value.trim(),observaciones:document.getElementById('crNotes').value.trim(),updatedAt:new Date().toISOString()};
+    // OJO: antes esto no quedaba registrado en el historial/bitácora -- crSaveState()
+    // solo guarda el dato pero nunca llamaba a log(), a diferencia de las demás
+    // pestañas (actividades ITGC, etc.) que sí registran cada cambio. Por eso
+    // las ediciones de Condición de Retorno nunca aparecían en "Historial de cambios".
+    var crc=CR_CONTROLS.find(function(x){return x.code===crModalCode;});
+    if(typeof log==='function')log('Condición de Retorno actualizada', (crc?crc.code+' — '+crc.name:crModalCode)+' · '+month+' · Resultado: '+(crSaved[id].resultado||'Pendiente'));
     crSaveState(); closeModal(); crRender(); if(typeof toast==='function')toast('Prueba guardada'); 
   }
   var CR_EXPORT_FIELDS=[
@@ -1971,6 +1978,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
       // --- actividades: una fila por actividad ---
       const currentTaskIds = new Set();
       const upserts = [];
+      const pendingTaskSigs = [];
       for (const tab of state.tabs) {
         for (let pos = 0; pos < tab.tasks.length; pos++) {
           const t = tab.tasks[pos];
@@ -1987,11 +1995,19 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
               resp_primera: dataOnly.respPrimera || null, resp_segunda: dataOnly.respSegunda || null,
               data: dataOnly,
             });
-            sbLastTasks.set(t._id, signature);
+            // OJO: NO marcar como sincronizado aquí todavía — solo después de que el
+            // upsert de abajo confirme éxito. Marcarlo antes (como estaba) hacía que,
+            // si esa llamada fallaba, el cambio se diera por sincronizado sin haberlo
+            // guardado nunca en Supabase, y el reintento automático ya no lo reenviaba.
+            pendingTaskSigs.push([t._id, signature]);
           }
         }
       }
-      if (upserts.length) { const { error } = await sb.from('tasks').upsert(upserts); if (error) throw error; }
+      if (upserts.length) {
+        const { error } = await sb.from('tasks').upsert(upserts);
+        if (error) throw error;
+        pendingTaskSigs.forEach(([id, sig]) => sbLastTasks.set(id, sig));
+      }
       for (const oldId of [...sbLastTasks.keys()]) {
         if (!currentTaskIds.has(oldId)) {
           const { error } = await sb.from('tasks').delete().eq('id', oldId);
@@ -2029,6 +2045,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
       // --- Condición de Retorno: resultados por control y mes ---
       const crDict = state.condicionPruebas || {};
       const crRows = [];
+      const pendingCrSigs = [];
       for (const [key, val] of Object.entries(crDict)) {
         const sig = JSON.stringify(val);
         if (sbLastCr.get(key) !== sig) {
@@ -2039,14 +2056,20 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
             responsable: val.responsable || null, revisor: val.revisor || null, resultado: val.resultado || null,
             excepciones: val.excepciones || null, observaciones: val.observaciones || null,
           });
-          sbLastCr.set(key, sig);
+          // Igual que con tasks: no marcar sincronizado hasta confirmar el upsert.
+          pendingCrSigs.push([key, sig]);
         }
       }
-      if (crRows.length) { const { error } = await sb.from('cr_resultados').upsert(crRows); if (error) throw error; }
+      if (crRows.length) {
+        const { error } = await sb.from('cr_resultados').upsert(crRows);
+        if (error) throw error;
+        pendingCrSigs.forEach(([key, sig]) => sbLastCr.set(key, sig));
+      }
 
       // --- Condición de Retorno: controles agregados manualmente ---
       const crCustom = state.condicionControles || [];
       const crCustomRows = [];
+      const pendingCrCustomSigs = [];
       for (const item of crCustom) {
         const sig = JSON.stringify(item);
         if (sbLastCrCustom.get(item.code) !== sig) {
@@ -2054,10 +2077,14 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
             code: item.code, workiva: item.workiva || null, name: item.name, frequency: item.frequency,
             applicable_months: item.applicableMonths || [], schedule: item.schedule || [], activities: item.activities || [],
           });
-          sbLastCrCustom.set(item.code, sig);
+          pendingCrCustomSigs.push([item.code, sig]);
         }
       }
-      if (crCustomRows.length) { const { error } = await sb.from('cr_controles_custom').upsert(crCustomRows); if (error) throw error; }
+      if (crCustomRows.length) {
+        const { error } = await sb.from('cr_controles_custom').upsert(crCustomRows);
+        if (error) throw error;
+        pendingCrCustomSigs.forEach(([code, sig]) => sbLastCrCustom.set(code, sig));
+      }
 
       syncDirty = false; syncBadge('Sincronizado');
     } catch (e) {
@@ -2179,7 +2206,13 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
   window.sbToggleUser = sbToggleUser;
 
   function sbOpenSync() {
-    showModal('<h2>Sincronización</h2><p>Este tablero está conectado a Supabase. Los cambios de actividades, responsables e historial se guardan por fila y se comparten con todo el equipo en tiempo real.</p><p class="login-note">Proyecto: ' + esc(SUPABASE_URL) + '</p><div class="modal-foot"><button class="btn" onclick="closeModal()">Cerrar</button><button class="btn" onclick="location.reload()">Actualizar ahora</button></div>');
+    // OJO: el botón llama a pullCloud() (que primero trae los datos frescos de
+    // Supabase y LUEGO recarga) y no a location.reload() directo. Un reload
+    // simple no sirve para ver cambios de otra persona: sbAutoLogin() detecta
+    // que esta pestaña ya está "hidratada" (sessionStorage.sbHydrated) y evita
+    // volver a consultar Supabase, así que solo se vuelve a mostrar la copia
+    // local vieja — por eso "Actualizar ahora" parecía no traer nada nuevo.
+    showModal('<h2>Sincronización</h2><p>Este tablero está conectado a Supabase. Los cambios de actividades, responsables e historial se guardan por fila y se comparten con todo el equipo en tiempo real.</p><p class="login-note">Proyecto: ' + esc(SUPABASE_URL) + '</p><div class="modal-foot"><button class="btn" onclick="closeModal()">Cerrar</button><button class="btn" onclick="pullCloud()">Actualizar ahora</button></div>');
   }
 
   // =====================================================================
@@ -2205,7 +2238,9 @@ const SUPABASE_ANON_KEY = 'sb_publishable_nEwxoxnYU7NttzV3_DJ0FQ_x_LbuRDX';
     b.id = 'sbUpdateBanner';
     b.textContent = '🔄 Hay cambios nuevos de otro usuario · Actualizar';
     b.style.cssText = 'position:fixed;left:24px;bottom:24px;z-index:200;background:#182033;color:#fff;border:0;border-radius:9px;padding:12px 16px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2);cursor:pointer';
-    b.onclick = () => location.reload();
+    // Igual que en sbOpenSync(): debe traer los datos nuevos con pullCloud()
+    // (fetch + reload), no solo recargar la página con la copia local vieja.
+    b.onclick = () => { b.textContent = 'Actualizando…'; b.disabled = true; pullCloud(); };
     document.body.appendChild(b);
   }
 
